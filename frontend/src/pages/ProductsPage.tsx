@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Edit, Trash2, Package, X } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 import { useProducts, useCategories, useCreateProduct, useUpdateProduct, useDeleteProduct } from '../hooks/useApi';
-import { useSettingsStore, getPageTitle, getBusinessConfig } from '../store/settingsStore';
+import { useSettingsStore, getPageTitle, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
 import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 
@@ -24,6 +24,7 @@ export function ProductsPage() {
   const businessType = useSettingsStore((s) => s.businessType);
   const config = getBusinessConfig(businessType);
   const pageInfo = getPageTitle('/products', businessType);
+  const labels = getEntityLabels(businessType);
   const isSalon = businessType === 'SALON';
 
   const openNew = () => { setForm(emptyForm); setEditing(null); setShowForm(true); };
@@ -56,7 +57,7 @@ export function ProductsPage() {
           <p className="text-gray-500 mt-1">{pageInfo.subtitle}</p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium">
-          <Plus className="w-4 h-4" /> Add {isSalon ? 'Service' : 'Product'}
+          <Plus className="w-4 h-4" /> Add {labels.product}
         </button>
       </div>
 
@@ -99,7 +100,7 @@ export function ProductsPage() {
                     </td>
                   </tr>
                 ))}
-                {(products || []).length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No {isSalon ? 'services' : 'products'} found</td></tr>}
+                {(products || []).length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No {labels.products.toLowerCase()} found</td></tr>}
               </tbody>
             </table>
           </div>
@@ -113,7 +114,7 @@ export function ProductsPage() {
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} onClick={e => e.stopPropagation()}
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg mx-4 shadow-xl max-h-[85vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">{editing ? `Edit ${isSalon ? 'Service' : 'Product'}` : `New ${isSalon ? 'Service' : 'Product'}`}</h2>
+                <h2 className="text-lg font-bold">{editing ? `Edit ${labels.product}` : `New ${labels.product}`}</h2>
                 <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-3">
@@ -144,7 +145,7 @@ export function ProductsPage() {
                 </div>
                 <button type="submit" disabled={createProduct.isPending || updateProduct.isPending}
                   className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">
-                  {editing ? `Update ${isSalon ? 'Service' : 'Product'}` : `Create ${isSalon ? 'Service' : 'Product'}`}
+                  {editing ? `Update ${labels.product}` : `Create ${labels.product}`}
                 </button>
               </form>
             </motion.div>
@@ -157,7 +158,7 @@ export function ProductsPage() {
         {deleteId && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm mx-4 shadow-xl">
-              <h2 className="text-lg font-bold mb-2">Delete {isSalon ? 'Service' : 'Product'}?</h2>
+              <h2 className="text-lg font-bold mb-2">Delete {labels.product}?</h2>
               <p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleteId(null)} className="flex-1 py-2 rounded-xl border text-sm">Cancel</button>

@@ -155,6 +155,7 @@ const pageDefaults: Record<string, { title: string; subtitle: string }> = {
   '/products': { title: 'Products', subtitle: 'Manage your product catalog' },
   '/orders': { title: 'Orders', subtitle: 'Manage and track all orders' },
   '/tables': { title: 'Tables', subtitle: 'Manage table assignments and status' },
+  '/customers': { title: 'Customers', subtitle: 'Manage customers & loyalty programs' },
 };
 
 export function getPageTitle(routePath: string, type?: BusinessType): { title: string; subtitle: string } {
@@ -171,6 +172,31 @@ export function getPageTitle(routePath: string, type?: BusinessType): { title: s
     'Merchandise': 'Manage your merchandise catalog',
     'Transactions': 'Manage and track all transactions',
     'Seating': 'Manage seating assignments and status',
+    'Clients': 'Manage clients & loyalty programs',
+    'Patients': 'Manage patients & prescriptions',
   };
   return { title: label, subtitle: subtitleMap[label] || defaults.subtitle };
+}
+
+/** Singular/plural entity labels derived from business config */
+const singularMap: Record<string, string> = {
+  Services: 'Service', Appointments: 'Appointment', Stations: 'Station',
+  Medications: 'Medication', Items: 'Item', Merchandise: 'Merchandise',
+  Transactions: 'Transaction', Seating: 'Seating', Clients: 'Client',
+  Patients: 'Patient', Products: 'Product', Orders: 'Order',
+  Tables: 'Table', Customers: 'Customer',
+};
+
+export function getEntityLabels(type?: BusinessType) {
+  const config = getBusinessConfig(type);
+  const products = config.renamedLabels['/products'] || 'Products';
+  const orders = config.renamedLabels['/orders'] || 'Orders';
+  const tables = config.renamedLabels['/tables'] || 'Tables';
+  const customers = config.renamedLabels['/customers'] || 'Customers';
+  return {
+    product: singularMap[products] || 'Product', products,
+    order: singularMap[orders] || 'Order', orders,
+    table: singularMap[tables] || 'Table', tables,
+    customer: singularMap[customers] || 'Customer', customers,
+  };
 }

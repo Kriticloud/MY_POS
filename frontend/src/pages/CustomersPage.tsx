@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Search, Plus, Star, Award, History, X, Gift } from 'lucide-react';
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useRedeemLoyalty, useLoyaltyHistory } from '../hooks/useApi';
 import { formatCurrency } from '../utils/helpers';
+import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 
@@ -17,6 +18,9 @@ export function CustomersPage() {
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
   const redeemLoyalty = useRedeemLoyalty();
+  const businessType = useSettingsStore((s) => s.businessType);
+  const pageInfo = getPageTitle('/customers', businessType);
+  const labels = getEntityLabels(businessType);
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -51,12 +55,12 @@ export function CustomersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Customers</h1><p className="text-gray-500 mt-1">Manage customers & loyalty programs</p></div>
-        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><Plus className="w-4 h-4" /> Add Customer</button>
+        <div><h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1><p className="text-gray-500 mt-1">{pageInfo.subtitle}</p></div>
+        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><Plus className="w-4 h-4" /> Add {labels.customer}</button>
       </div>
 
       <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input type="text" placeholder="Search customers..." value={search} onChange={e => setSearch(e.target.value)}
+        <input type="text" placeholder={`Search ${labels.customers.toLowerCase()}...`} value={search} onChange={e => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm" /></div>
 
       {isLoading ? <Skeleton className="h-64 w-full" /> : (
@@ -97,7 +101,7 @@ export function CustomersPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
-            <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">{editing ? 'Edit' : 'Add'} Customer</h2><button onClick={() => setShowModal(false)}><X className="w-5 h-5" /></button></div>
+            <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">{editing ? 'Edit' : 'Add'} {labels.customer}</h2><button onClick={() => setShowModal(false)}><X className="w-5 h-5" /></button></div>
             <div className="space-y-3">
               {[{ key: 'firstName', label: 'First Name *' }, { key: 'lastName', label: 'Last Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'address', label: 'Address' }].map(f => (
                 <div key={f.key}><label className="text-xs font-medium text-gray-500">{f.label}</label>
@@ -105,7 +109,7 @@ export function CustomersPage() {
               ))}
             </div>
             <button onClick={handleSave} className="w-full mt-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
-              {editing ? 'Update' : 'Create'} Customer
+              {editing ? 'Update' : 'Create'} {labels.customer}
             </button>
           </div>
         </div>
@@ -115,7 +119,7 @@ export function CustomersPage() {
       {showDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center">
-            <p className="text-lg font-bold mb-2">Delete Customer?</p><p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
+            <p className="text-lg font-bold mb-2">Delete {labels.customer}?</p><p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
             <div className="flex gap-3"><button onClick={() => setShowDelete(null)} className="flex-1 py-2 bg-gray-100 rounded-xl text-sm">Cancel</button>
               <button onClick={() => handleDelete(showDelete)} className="flex-1 py-2 bg-red-600 text-white rounded-xl text-sm">Delete</button></div>
           </div>

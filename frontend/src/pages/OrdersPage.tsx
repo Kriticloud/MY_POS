@@ -5,7 +5,7 @@ import { useOrders, useUpdateOrderStatus } from '../hooks/useApi';
 import { Search, Filter, Eye, X, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
-import { useSettingsStore, getPageTitle } from '../store/settingsStore';
+import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
 
 const statusOptions = ['ALL', 'PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED'];
 const statusColor: Record<string, string> = {
@@ -24,6 +24,7 @@ export function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const businessType = useSettingsStore((s) => s.businessType);
   const pageInfo = getPageTitle('/orders', businessType);
+  const labels = getEntityLabels(businessType);
   const { data: orders, isLoading } = useOrders(statusFilter !== 'ALL' ? { status: statusFilter } : undefined);
   const updateStatus = useUpdateOrderStatus();
 
@@ -55,7 +56,7 @@ export function OrdersPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" placeholder="Search orders..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder={`Search ${labels.orders.toLowerCase()}...`} value={search} onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
         </div>
         <div className="flex gap-1.5 overflow-x-auto">
@@ -104,7 +105,7 @@ export function OrdersPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredOrders.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-gray-400">No orders found</td></tr>}
+                {filteredOrders.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-gray-400">No {labels.orders.toLowerCase()} found</td></tr>}
               </tbody>
             </table>
           </div>

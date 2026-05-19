@@ -5,7 +5,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { formatCurrency } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
-import { useSettingsStore, getPageTitle } from '../store/settingsStore';
+import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
 
 const statusConfig: Record<string, { bg: string; text: string; icon: any; dot: string }> = {
   AVAILABLE: { bg: 'bg-green-50 dark:bg-green-900/20 border-green-200', text: 'text-green-700', icon: CheckCircle, dot: 'bg-green-500' },
@@ -20,12 +20,12 @@ export function TablesPage() {
   const [selected, setSelected] = useState<any>(null);
   const businessType = useSettingsStore((s) => s.businessType);
   const pageInfo = getPageTitle('/tables', businessType);
-  const isSalon = businessType === 'SALON';
+  const labels = getEntityLabels(businessType);
 
   const handleStatus = async (tableId: string, status: string) => {
     try {
       await updateStatus.mutateAsync({ id: tableId, status });
-      toast.success(`${isSalon ? 'Station' : 'Table'} updated to ${status}`);
+      toast.success(`${labels.table} updated to ${status}`);
       setSelected(null);
     } catch { toast.error('Failed to update table'); }
   };

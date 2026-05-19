@@ -6,7 +6,7 @@ import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, Shopping
 import toast from 'react-hot-toast';
 import { useProducts, useCategories, useCreateOrder, useCustomers, useProductByBarcode } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
-import { useSettingsStore, getBusinessConfig } from '../store/settingsStore';
+import { useSettingsStore, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
 import { printReceipt, downloadReceipt } from '../services/receipt';
 
 interface SplitPayment { method: string; amount: number; }
@@ -39,6 +39,7 @@ export function POSPage() {
   const user = useAuthStore(s => s.user);
 
   const config = getBusinessConfig(businessType);
+  const labels = getEntityLabels(businessType);
   const isSalon = businessType === 'SALON';
 
   const allCategories = useMemo(() => {
@@ -142,7 +143,7 @@ export function POSPage() {
         paymentMethod: payments.length > 1 ? 'SPLIT' : payments[0].method,
         payments: payments.length > 1 ? payments : undefined,
         cashierName: user ? `${user.firstName} ${user.lastName}` : 'Staff',
-        businessName: isSalon ? 'MyPOS Salon & Spa' : 'MyPOS Restaurant',
+        businessName: useSettingsStore.getState().businessName || 'MyPOS',
         loyaltyPointsEarned: Math.floor(finalTotal),
         customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName || ''}` : undefined,
       };
@@ -167,7 +168,7 @@ export function POSPage() {
         <div className="flex items-center gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder={isSalon ? 'Search services...' : 'Search products...'} value={search} onChange={e => setSearch(e.target.value)}
+            <input type="text" placeholder={`Search ${labels.products.toLowerCase()}...`} value={search} onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
           </div>
           <button onClick={() => { setShowBarcode(!showBarcode); setTimeout(() => barcodeRef.current?.focus(), 100); }}
@@ -216,7 +217,7 @@ export function POSPage() {
               </div>
             </motion.button>
           ))}
-          {products.length === 0 && <div className="col-span-full text-center py-12 text-gray-400">{isSalon ? 'No services found' : 'No products found'}</div>}
+          {products.length === 0 && <div className="col-span-full text-center py-12 text-gray-400">No {labels.products.toLowerCase()} found</div>}
         </div>
       </div>
 
