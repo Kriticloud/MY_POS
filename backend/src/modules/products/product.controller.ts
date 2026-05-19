@@ -31,7 +31,7 @@ export class ProductController {
       const where: any = { branchId: req.user!.branchId };
       if (search) {
         where.OR = [
-          { name: { contains: String(search), mode: 'insensitive' } },
+          { name: { contains: String(search) } },
           { barcode: { contains: String(search) } },
           { sku: { contains: String(search) } },
         ];

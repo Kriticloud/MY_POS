@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
-import type { Product, Category, Order, Customer, Table, ApiResponse } from '../types';
+import type { Product, Category, Order, Customer, Table, Employee, InventoryItem, AuditLog, LoyaltyTransaction, ApiResponse } from '../types';
 
 // Products
 export function useProducts(params?: { search?: string; categoryId?: string }) {
@@ -103,6 +103,20 @@ export function useUpdateOrderStatus() {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['kitchen'] });
       queryClient.invalidateQueries({ queryKey: ['tables'] });
+    },
+  });
+}
+
+export function useVoidOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { data } = await api.put<ApiResponse<Order>>(`/orders/${id}/void`, { reason });
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-log'] });
     },
   });
 }
@@ -233,5 +247,94 @@ export function useUpdateSetting() {
       return data.data;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['settings'] }); },
+  });
+}
+
+// Loyalty
+export function useRedeemLoyalty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ customerId, points }: { customerId: string; points: number }) => {
+      const { data } = await api.post<ApiResponse<Customer>>(`/customers/${customerId}/redeem`, { points });
+      return data.data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers'] }); queryClient.invalidateQueries({ queryKey: ['loyalty-history'] }); },
+  });
+}
+export function useLoyaltyHistory(customerId?: string) {
+  return useQuery({
+    queryKey: ['loyalty-history', customerId],
+    queryFn: async () => { const { data } = await api.get<ApiResponse<LoyaltyTransaction[]>>(`/customers/${customerId}/loyalty`); return data.data; },
+    enabled: !!customerId,
+  });
+}
+
+// Inventory
+export function useInventory() {
+  return useQuery({
+    queryKey: ['inventory'],
+    queryFn: async () => { const { data } = await api.get<ApiResponse<InventoryItem[]>>('/inventory'); return data.data; },
+  });
+}
+export function useInventoryAlerts() {
+  return useQuery({
+    queryKey: ['inventory', 'alerts'],
+    queryFn: async () => { const { data } = await api.get<ApiResponse<InventoryItem[]>>('/inventory/alerts'); return data.data; },
+    refetchInterval: 60000,
+  });
+}
+export function useUpdateInventory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: { id: string; quantity?: number; minStock?: number }) => {
+      const { data } = await api.put<ApiResponse<InventoryItem>>(`/inventory/${id}`, d);
+      return data.data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['inventory'] }); },
+  });
+}
+
+// Employees
+export function useEmployees() {
+  return useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => { const { data } = await api.get<ApiResponse<Employee[]>>('/employees'); return data.data; },
+    refetchInterval: 30000,
+  });
+}
+export function useClockIn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (employeeId: string) => { const { data } = await api.post<ApiResponse<Employee>>(`/employees/${employeeId}/clock-in`); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['employees'] }); },
+  });
+}
+export function useClockOut() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (employeeId: string) => { const { data } = await api.post<ApiResponse<Employee>>(`/employees/${employeeId}/clock-out`); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['employees'] }); },
+  });
+}
+
+// Additional Reports
+export function useStaffPerformance() {
+  return useQuery({
+    queryKey: ['reports', 'staff-performance'],
+    queryFn: async () => { const { data } = await api.get('/reports/staff-performance'); return data.data; },
+  });
+}
+export function useMarginReport() {
+  return useQuery({
+    queryKey: ['reports', 'margins'],
+    queryFn: async () => { const { data } = await api.get('/reports/margins'); return data.data; },
+  });
+}
+
+// Audit Log
+export function useAuditLog(params?: { limit?: number }) {
+  return useQuery({
+    queryKey: ['audit-log', params],
+    queryFn: async () => { const { data } = await api.get<ApiResponse<AuditLog[]>>('/audit-log', { params }); return data.data; },
   });
 }

@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
+import { useSettingsStore } from './store/settingsStore';
 import { MainLayout } from './layouts/MainLayout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -11,6 +13,8 @@ import { CustomersPage } from './pages/CustomersPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { KitchenPage } from './pages/KitchenPage';
+import { EmployeesPage } from './pages/EmployeesPage';
+import { InventoryPage } from './pages/InventoryPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -19,6 +23,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -40,6 +50,8 @@ export default function App() {
         <Route path="customers" element={<CustomersPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="employees" element={<EmployeesPage />} />
+        <Route path="inventory" element={<InventoryPage />} />
       </Route>
     </Routes>
   );

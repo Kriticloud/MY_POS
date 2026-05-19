@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Store, Printer, Globe, Palette, Bell, Shield, Save } from 'lucide-react';
 import { useSettings, useUpdateSetting } from '../hooks/useApi';
+import { useSettingsStore, type BusinessType } from '../store/settingsStore';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 
@@ -30,13 +31,24 @@ export function SettingsPage() {
 
   const getValue = (key: string, fallback = '') => form[key] ?? fallback;
   const setValue = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
+  const updateGlobalSettings = useSettingsStore((s) => s.updateSettings);
 
   const saveSection = async (keys: string[], group: string) => {
     try {
       for (const key of keys) {
         if (form[key] !== undefined) await updateSetting.mutateAsync({ key, value: form[key], group });
       }
-      toast.success('Settings saved');
+      // Sync business settings to global store immediately
+      if (group === 'business') {
+        updateGlobalSettings({
+          currency: form.currency || 'USD',
+          businessType: (form.businessType as BusinessType) || 'RESTAURANT',
+          businessName: form.businessName || 'MyPOS',
+          taxRate: parseFloat(form.taxRate) || 8.5,
+          taxInclusive: form.taxInclusive === 'true',
+        });
+      }
+      toast.success('Settings saved — changes applied across the app');
     } catch { toast.error('Failed to save settings'); }
   };
 
@@ -72,7 +84,7 @@ export function SettingsPage() {
                   </select></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
                   <select value={getValue('currency', 'USD')} onChange={e => setValue('currency', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm">
-                    {['USD', 'EUR', 'GBP', 'INR', 'AED', 'SAR'].map(c => <option key={c}>{c}</option>)}
+                    {[['USD', '$ USD — US Dollar'], ['EUR', '€ EUR — Euro'], ['GBP', '£ GBP — British Pound'], ['INR', '₹ INR — Indian Rupee'], ['AED', 'د.إ AED — UAE Dirham'], ['SAR', '﷼ SAR — Saudi Riyal'], ['JPY', '¥ JPY — Japanese Yen'], ['CAD', '$ CAD — Canadian Dollar'], ['AUD', '$ AUD — Australian Dollar'], ['BRL', 'R$ BRL — Brazilian Real'], ['MXN', '$ MXN — Mexican Peso'], ['CNY', '¥ CNY — Chinese Yuan']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Default Tax Rate (%)</label>
                   <input type="number" step="0.1" value={getValue('taxRate', '8.5')} onChange={e => setValue('taxRate', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>

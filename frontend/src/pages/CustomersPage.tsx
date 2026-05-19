@@ -1,143 +1,170 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, User, Mail, Phone, Star, X, Edit, Trash2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Plus, Star, Award, History, X, Gift } from 'lucide-react';
+import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useRedeemLoyalty, useLoyaltyHistory } from '../hooks/useApi';
 import { formatCurrency } from '../utils/helpers';
-import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '../hooks/useApi';
-import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
+import { Skeleton } from '../components/ui/Skeleton';
 
-const emptyForm = { firstName: '', lastName: '', email: '', phone: '', address: '' };
+const tierColors: Record<string, string> = { BRONZE: 'bg-orange-100 text-orange-700', SILVER: 'bg-gray-100 text-gray-700', GOLD: 'bg-amber-100 text-amber-700', PLATINUM: 'bg-purple-100 text-purple-700' };
+const tierThresholds = [{ tier: 'PLATINUM', min: 5000 }, { tier: 'GOLD', min: 2000 }, { tier: 'SILVER', min: 500 }, { tier: 'BRONZE', min: 0 }];
+
+function getTier(points: number) { return tierThresholds.find(t => points >= t.min)?.tier || 'BRONZE'; }
 
 export function CustomersPage() {
   const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState(emptyForm);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
   const { data: customers, isLoading } = useCustomers({ search: search || undefined });
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
+  const redeemLoyalty = useRedeemLoyalty();
 
-  const openNew = () => { setForm(emptyForm); setEditing(null); setShowForm(true); };
-  const openEdit = (c: any) => {
-    setForm({ firstName: c.firstName, lastName: c.lastName || '', email: c.email || '', phone: c.phone || '', address: c.address || '' });
-    setEditing(c); setShowForm(true);
-  };
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [showDelete, setShowDelete] = useState<string | null>(null);
+  const [showLoyalty, setShowLoyalty] = useState<string | null>(null);
+  const [redeemPoints, setRedeemPoints] = useState('');
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', address: '' });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const { data: loyaltyHistory } = useLoyaltyHistory(showLoyalty || undefined);
+  const loyaltyCustomer = showLoyalty ? (customers || []).find((c: any) => c.id === showLoyalty) : null;
+
+  const openAdd = () => { setForm({ firstName: '', lastName: '', email: '', phone: '', address: '' }); setEditing(null); setShowModal(true); };
+  const openEdit = (c: any) => { setForm({ firstName: c.firstName, lastName: c.lastName || '', email: c.email || '', phone: c.phone || '', address: c.address || '' }); setEditing(c); setShowModal(true); };
+
+  const handleSave = async () => {
     try {
       if (editing) { await updateCustomer.mutateAsync({ id: editing.id, ...form }); toast.success('Customer updated'); }
-      else { await createCustomer.mutateAsync(form); toast.success('Customer created'); }
-      setShowForm(false);
-    } catch { toast.error('Failed to save customer'); }
+      else { await createCustomer.mutateAsync(form as any); toast.success('Customer created'); }
+      setShowModal(false);
+    } catch { toast.error('Failed to save'); }
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    try { await deleteCustomer.mutateAsync(deleteId); toast.success('Customer deleted'); setDeleteId(null); }
-    catch { toast.error('Failed to delete customer'); }
+  const handleDelete = async (id: string) => {
+    try { await deleteCustomer.mutateAsync(id); setShowDelete(null); toast.success('Customer deleted'); } catch { toast.error('Failed to delete'); }
+  };
+
+  const handleRedeem = async () => {
+    if (!showLoyalty || !redeemPoints) return;
+    try { await redeemLoyalty.mutateAsync({ customerId: showLoyalty, points: parseInt(redeemPoints) }); setRedeemPoints(''); toast.success('Points redeemed!'); } catch { toast.error('Failed to redeem'); }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Customers</h1>
-          <p className="text-gray-500 mt-1">Manage your customer database</p>
-        </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium">
-          <Plus className="w-4 h-4" /> Add Customer
-        </button>
+        <div><h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Customers</h1><p className="text-gray-500 mt-1">Manage customers & loyalty programs</p></div>
+        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><Plus className="w-4 h-4" /> Add Customer</button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input type="text" placeholder="Search customers..." value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
-      </div>
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm" /></div>
 
-      {isLoading ? <Skeleton className="h-60 w-full" /> : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {(customers || []).map((c: any) => (
-            <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+      {isLoading ? <Skeleton className="h-64 w-full" /> : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {(customers || []).map((c: any) => {
+            const tier = getTier(c.loyaltyPoints);
+            return (
+              <div key={c.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-5">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-lg font-bold text-blue-600">
                     {c.firstName[0]}{(c.lastName || '')[0] || ''}
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">{c.firstName} {c.lastName}</p>
-                    {c.email && <p className="text-xs text-gray-500 flex items-center gap-1"><Mail className="w-3 h-3" /> {c.email}</p>}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{c.firstName} {c.lastName || ''}</p>
+                    <p className="text-xs text-gray-500">{c.email || c.phone || 'No contact'}</p>
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${tierColors[tier] || tierColors.BRONZE}`}>
+                      <Award className="w-3 h-3 inline mr-1" />{tier}
+                    </span>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><Edit className="w-3.5 h-3.5 text-gray-400" /></button>
-                  <button onClick={() => setDeleteId(c.id)} className="p-1.5 rounded-lg hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+                <div className="grid grid-cols-3 gap-3 text-center mb-4">
+                  <div><p className="text-lg font-bold text-amber-500">{c.loyaltyPoints}</p><p className="text-xs text-gray-500">Points</p></div>
+                  <div><p className="text-lg font-bold">{formatCurrency(c.totalSpent)}</p><p className="text-xs text-gray-500">Spent</p></div>
+                  <div><p className="text-lg font-bold">{formatCurrency(c.storeCredit || 0)}</p><p className="text-xs text-gray-500">Credit</p></div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowLoyalty(c.id)} className="flex-1 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-100 flex items-center justify-center gap-1"><Star className="w-3 h-3" /> Loyalty</button>
+                  <button onClick={() => openEdit(c)} className="flex-1 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200">Edit</button>
+                  <button onClick={() => setShowDelete(c.id)} className="py-1.5 px-3 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100">Delete</button>
                 </div>
               </div>
-              {c.phone && <p className="text-xs text-gray-500 flex items-center gap-1 mb-3"><Phone className="w-3 h-3" /> {c.phone}</p>}
-              <div className="flex items-center justify-between text-sm pt-3 border-t border-gray-100 dark:border-gray-700">
-                <div><p className="text-gray-500 text-xs">Total Spent</p><p className="font-medium">{formatCurrency(c.totalSpent || 0)}</p></div>
-                <div className="text-right"><p className="text-gray-500 text-xs">Loyalty Points</p>
-                  <p className="font-medium flex items-center justify-end gap-1"><Star className="w-3 h-3 text-amber-400" /> {c.loyaltyPoints || 0}</p></div>
-              </div>
-            </motion.div>
-          ))}
-          {(customers || []).length === 0 && <div className="col-span-full text-center py-12 text-gray-400">No customers found</div>}
+            );
+          })}
         </div>
       )}
 
-      {/* Form Modal */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} onClick={e => e.stopPropagation()}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">{editing ? 'Edit Customer' : 'New Customer'}</h2>
-                <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className="block text-xs font-medium text-gray-500 mb-1">First Name *</label>
-                    <input required value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
-                  <div><label className="block text-xs font-medium text-gray-500 mb-1">Last Name</label>
-                    <input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
-                </div>
-                <div><label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
-                  <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
-                <div><label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
-                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
-                <div><label className="block text-xs font-medium text-gray-500 mb-1">Address</label>
-                  <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
-                <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">
-                  {editing ? 'Update Customer' : 'Create Customer'}
-                </button>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+            <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">{editing ? 'Edit' : 'Add'} Customer</h2><button onClick={() => setShowModal(false)}><X className="w-5 h-5" /></button></div>
+            <div className="space-y-3">
+              {[{ key: 'firstName', label: 'First Name *' }, { key: 'lastName', label: 'Last Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'address', label: 'Address' }].map(f => (
+                <div key={f.key}><label className="text-xs font-medium text-gray-500">{f.label}</label>
+                  <input type="text" value={(form as any)[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" /></div>
+              ))}
+            </div>
+            <button onClick={handleSave} className="w-full mt-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
+              {editing ? 'Update' : 'Create'} Customer
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Delete Confirmation */}
-      <AnimatePresence>
-        {deleteId && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm mx-4 shadow-xl">
-              <h2 className="text-lg font-bold mb-2">Delete Customer?</h2>
-              <p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteId(null)} className="flex-1 py-2 rounded-xl border text-sm">Cancel</button>
-                <button onClick={handleDelete} className="flex-1 py-2 bg-red-600 text-white rounded-xl text-sm hover:bg-red-700">Delete</button>
+      {/* Delete Modal */}
+      {showDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center">
+            <p className="text-lg font-bold mb-2">Delete Customer?</p><p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
+            <div className="flex gap-3"><button onClick={() => setShowDelete(null)} className="flex-1 py-2 bg-gray-100 rounded-xl text-sm">Cancel</button>
+              <button onClick={() => handleDelete(showDelete)} className="flex-1 py-2 bg-red-600 text-white rounded-xl text-sm">Delete</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* Loyalty Modal */}
+      {showLoyalty && loyaltyCustomer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between mb-4"><h2 className="text-lg font-bold flex items-center gap-2"><Star className="w-5 h-5 text-amber-500" /> Loyalty Program</h2><button onClick={() => setShowLoyalty(null)}><X className="w-5 h-5" /></button></div>
+            <div className="text-center mb-4">
+              <p className="text-3xl font-bold text-amber-500">{loyaltyCustomer.loyaltyPoints}</p>
+              <p className="text-sm text-gray-500">Available Points</p>
+              <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${tierColors[getTier(loyaltyCustomer.loyaltyPoints)]}`}>{getTier(loyaltyCustomer.loyaltyPoints)} Member</span>
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 mb-4">
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-2 flex items-center gap-1"><Gift className="w-4 h-4" /> Redeem Points</p>
+              <p className="text-xs text-amber-600 mb-2">100 points = $1.00 discount</p>
+              <div className="flex gap-2">
+                <input type="number" value={redeemPoints} onChange={e => setRedeemPoints(e.target.value)} max={loyaltyCustomer.loyaltyPoints}
+                  placeholder="Points to redeem" className="flex-1 px-3 py-2 rounded-lg border text-sm" />
+                <button onClick={handleRedeem} disabled={!redeemPoints || parseInt(redeemPoints) > loyaltyCustomer.loyaltyPoints}
+                  className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:bg-gray-300">Redeem</button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-1"><History className="w-4 h-4" /> Points History</h3>
+              <div className="space-y-2">
+                {(loyaltyHistory || []).map((t: any) => (
+                  <div key={t.id} className="flex items-center justify-between text-sm p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div><p className="font-medium">{t.description}</p><p className="text-xs text-gray-500">{new Date(t.createdAt).toLocaleDateString()}</p></div>
+                    <span className={`font-bold ${t.type === 'EARNED' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'EARNED' ? '+' : '-'}{t.points}</span>
+                  </div>
+                ))}
+                {(loyaltyHistory || []).length === 0 && <p className="text-sm text-gray-400 text-center py-4">No history yet</p>}
+              </div>
+            </div>
+            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+              <p className="text-xs font-medium text-gray-500 mb-1">Tier Progress</p>
+              <div className="flex items-center gap-2 text-xs">
+                {tierThresholds.slice().reverse().map(t => (
+                  <div key={t.tier} className={`flex-1 text-center py-1 rounded ${loyaltyCustomer.loyaltyPoints >= t.min ? tierColors[t.tier] : 'bg-gray-100 text-gray-400'}`}>{t.tier}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

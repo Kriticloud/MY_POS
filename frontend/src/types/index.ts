@@ -51,6 +51,10 @@ export interface Product {
   category?: Category;
   modifiers?: Record<string, unknown>;
   variants?: Record<string, unknown>;
+  batchNumber?: string;
+  expiryDate?: string;
+  stockQuantity?: number;
+  minStockLevel?: number;
 }
 
 export interface Customer {
@@ -62,6 +66,8 @@ export interface Customer {
   address?: string;
   loyaltyPoints: number;
   totalSpent: number;
+  loyaltyTier?: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+  storeCredit?: number;
 }
 
 export interface Order {
@@ -81,6 +87,8 @@ export interface Order {
   items: OrderItem[];
   payments: Payment[];
   createdAt: string;
+  voidReason?: string;
+  voidedBy?: string;
 }
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'SERVED' | 'COMPLETED' | 'CANCELLED';
@@ -115,6 +123,67 @@ export interface Table {
   status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'CLEANING';
   floor?: string;
   orders?: Order[];
+}
+
+export interface Employee {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  email: string;
+  phone?: string;
+  isActive: boolean;
+  clockedIn: boolean;
+  lastClockIn?: string;
+  lastClockOut?: string;
+  totalHoursToday?: number;
+  totalSalesToday?: number;
+  ordersToday?: number;
+}
+
+export interface TimeEntry {
+  id: string;
+  employeeId: string;
+  clockIn: string;
+  clockOut?: string;
+  breakMinutes?: number;
+  hoursWorked?: number;
+  date: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  productId: string;
+  product?: { name: string; sku?: string; barcode?: string };
+  quantity: number;
+  minStock: number;
+  batchNumber?: string;
+  expiryDate?: string;
+  lastRestocked?: string;
+  reorderPoint?: number;
+  reorderQuantity?: number;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  userId: string;
+  userName: string;
+  details: string;
+  timestamp: string;
+  entityType?: string;
+  entityId?: string;
+}
+
+export interface LoyaltyTransaction {
+  id: string;
+  customerId: string;
+  orderId?: string;
+  points: number;
+  type: 'EARNED' | 'REDEEMED' | 'EXPIRED' | 'ADJUSTED';
+  description: string;
+  createdAt: string;
 }
 
 export interface Appointment {

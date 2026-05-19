@@ -12,10 +12,10 @@ export class CustomerController {
       const where: any = {};
       if (search) {
         where.OR = [
-          { firstName: { contains: String(search), mode: 'insensitive' } },
-          { lastName: { contains: String(search), mode: 'insensitive' } },
+          { firstName: { contains: String(search) } },
+          { lastName: { contains: String(search) } },
           { phone: { contains: String(search) } },
-          { email: { contains: String(search), mode: 'insensitive' } },
+          { email: { contains: String(search) } },
         ];
       }
 

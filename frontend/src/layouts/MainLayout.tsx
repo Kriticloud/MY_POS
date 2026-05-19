@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
+import { useSettingsStore, getBusinessConfig } from '../store/settingsStore';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -14,10 +15,12 @@ import {
   ChefHat,
   Menu,
   X,
+  UserCog,
+  Warehouse,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
-const navItems = [
+const allNavItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/pos', icon: ShoppingCart, label: 'POS' },
   { to: '/orders', icon: ClipboardList, label: 'Orders' },
@@ -26,13 +29,28 @@ const navItems = [
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/customers', icon: Users, label: 'Customers' },
   { to: '/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/employees', icon: UserCog, label: 'Employees' },
+  { to: '/inventory', icon: Warehouse, label: 'Inventory' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export function MainLayout() {
   const { user, logout } = useAuthStore();
+  const businessType = useSettingsStore((s) => s.businessType);
+  const businessName = useSettingsStore((s) => s.businessName);
+  const currency = useSettingsStore((s) => s.currency);
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navItems = useMemo(() => {
+    const config = getBusinessConfig(businessType);
+    return allNavItems
+      .filter((item) => !config.hiddenRoutes.includes(item.to))
+      .map((item) => ({
+        ...item,
+        label: config.renamedLabels[item.to] || item.label,
+      }));
+  }, [businessType]);
 
   const handleLogout = () => {
     logout();
@@ -61,8 +79,8 @@ export function MainLayout() {
             <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
               <ShoppingCart className="w-5 h-5 text-white" />
             </div>
-            <span className="font-display font-bold text-xl text-dark-900 dark:text-white">
-              MyPOS
+            <span className="font-display font-bold text-xl text-dark-900 dark:text-white truncate">
+              {businessName || 'MyPOS'}
             </span>
             <button
               className="ml-auto lg:hidden"
@@ -130,12 +148,12 @@ export function MainLayout() {
 
         {/* Page content */}
         <motion.div
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <Outlet />
+          <Outlet key={`${businessType}-${currency}`} />
         </motion.div>
       </main>
     </div>

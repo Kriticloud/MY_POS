@@ -89,3 +89,20 @@ export function printReceipt(data: ReceiptData) {
     printWindow.print();
   }
 }
+
+export function downloadReceipt(data: ReceiptData) {
+  const html = generateReceiptHTML(data);
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `receipt-${data.orderNumber}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function sendDigitalReceipt(data: ReceiptData, email: string) {
+  // In production this would call the backend API
+  console.log(`Sending receipt ${data.orderNumber} to ${email}`);
+  return Promise.resolve({ success: true });
+}

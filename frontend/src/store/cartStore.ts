@@ -14,7 +14,7 @@ interface CartState {
   items: CartItem[];
   customerId: string | null;
   tableId: string | null;
-  orderType: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'ONLINE';
+  orderType: string;
   discount: number;
   notes: string;
   addItem: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
@@ -23,7 +23,7 @@ interface CartState {
   updateNotes: (id: string, notes: string) => void;
   setCustomer: (customerId: string | null) => void;
   setTable: (tableId: string | null) => void;
-  setOrderType: (type: CartItem['quantity'] extends number ? CartState['orderType'] : never) => void;
+  setOrderType: (type: string) => void;
   setDiscount: (discount: number) => void;
   setOrderNotes: (notes: string) => void;
   clearCart: () => void;
@@ -77,7 +77,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   setCustomer: (customerId) => set({ customerId }),
   setTable: (tableId) => set({ tableId }),
-  setOrderType: (orderType: CartState['orderType']) => set({ orderType }),
+  setOrderType: (orderType: string) => set({ orderType }),
   setDiscount: (discount) => set({ discount }),
   setOrderNotes: (notes) => set({ notes }),
 
