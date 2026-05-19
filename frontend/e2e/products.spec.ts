@@ -1,0 +1,38 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('Products Page', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login');
+    await page.getByRole('textbox').first().fill('admin@mypos.com');
+    await page.getByRole('textbox').nth(1).fill('admin123');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+    await page.goto('/products');
+  });
+
+  test('should display products page with table', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible();
+    await expect(page.getByText('Manage your product catalog')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Product' })).toBeVisible();
+  });
+
+  test('should display product list', async ({ page }) => {
+    await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Classic Burger')).toBeVisible();
+    await expect(page.getByText('Mango Smoothie')).toBeVisible();
+  });
+
+  test('should search products', async ({ page }) => {
+    await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+    await page.getByPlaceholder('Search by name, SKU, or barcode...').fill('burger');
+    await expect(page.getByText('Classic Burger')).toBeVisible();
+    await expect(page.getByText('Espresso')).not.toBeVisible();
+  });
+
+  test('should open add product modal', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add Product' }).click();
+    await expect(page.getByText('Add Product')).toBeVisible();
+    await expect(page.getByText('Name *')).toBeVisible();
+    await expect(page.getByText('Price *')).toBeVisible();
+  });
+});

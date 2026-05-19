@@ -42,6 +42,46 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
+    // Dev mode fallback when database is unavailable
+    if (process.env.NODE_ENV === 'development') {
+      const devUsers: Record<string, { password: string; id: string; firstName: string; lastName: string; role: string }> = {
+        'admin@mypos.com': { password: 'admin123', id: 'dev-admin-001', firstName: 'Admin', lastName: 'User', role: 'ADMIN' },
+        'cashier@mypos.com': { password: 'cashier123', id: 'dev-cashier-001', firstName: 'Cashier', lastName: 'User', role: 'STAFF' },
+      };
+
+      try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (user) {
+          const isValidPassword = await bcrypt.compare(password, user.password);
+          if (!isValidPassword || !user.isActive) {
+            throw new AppError('Invalid credentials', 401);
+          }
+          const tokens = this.generateTokens(user.id, user.email, user.role);
+          try {
+            await prisma.user.update({ where: { id: user.id }, data: { refreshToken: tokens.refreshToken } });
+          } catch {}
+          return {
+            user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, branchId: user.branchId },
+            ...tokens,
+          };
+        }
+      } catch (e: any) {
+        // Database unavailable — fall through to dev credentials
+        if (e instanceof AppError) throw e;
+      }
+
+      const devUser = devUsers[email];
+      if (devUser && password === devUser.password) {
+        const tokens = this.generateTokens(devUser.id, email, devUser.role);
+        return {
+          user: { id: devUser.id, email, firstName: devUser.firstName, lastName: devUser.lastName, role: devUser.role, branchId: null },
+          ...tokens,
+        };
+      }
+
+      throw new AppError('Invalid credentials', 401);
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.isActive) {
       throw new AppError('Invalid credentials', 401);
@@ -73,7 +113,16 @@ export class AuthService {
 
   async refreshToken(token: string) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as { userId: string };
+      const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as { userId: string; email?: string; role?: string };
+
+      // Dev-mode fallback: skip DB lookup for dev users
+      if (process.env.NODE_ENV === 'development' && decoded.userId.startsWith('dev-')) {
+        const email = decoded.email || 'admin@mypos.com';
+        const role = decoded.role || 'ADMIN';
+        const tokens = this.generateTokens(decoded.userId, email, role);
+        return tokens;
+      }
+
       const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
 
       if (!user || user.refreshToken !== token) {
@@ -124,7 +173,7 @@ export class AuthService {
     );
 
     const refreshToken = jwt.sign(
-      { userId },
+      { userId, email, role },
       process.env.JWT_REFRESH_SECRET!,
       { expiresIn: '7d' }
     );

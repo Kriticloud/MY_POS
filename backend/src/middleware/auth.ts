@@ -33,9 +33,18 @@ export const authenticate = async (
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: { id: true, email: true, role: true, branchId: true, isActive: true },
-    });
+    }).catch(() => null);
 
-    if (!user || !user.isActive) {
+    if (!user) {
+      // Dev mode fallback for dev-generated tokens
+      if (process.env.NODE_ENV === 'development' && decoded.userId.startsWith('dev-')) {
+        req.user = { id: decoded.userId, email: decoded.email, role: decoded.role, branchId: null };
+        return next();
+      }
+      throw new AppError('Unauthorized - User not found or inactive', 401);
+    }
+
+    if (!user.isActive) {
       throw new AppError('Unauthorized - User not found or inactive', 401);
     }
 

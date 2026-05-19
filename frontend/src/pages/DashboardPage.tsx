@@ -1,180 +1,111 @@
 import { motion } from 'framer-motion';
-import {
-  DollarSign,
-  ShoppingBag,
-  Users,
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
-} from 'lucide-react';
-import { formatCurrency } from '../utils/helpers';
-
-const stats = [
-  {
-    label: 'Total Revenue',
-    value: 48750.0,
-    change: 12.5,
-    icon: DollarSign,
-    color: 'bg-blue-500',
-  },
-  {
-    label: "Today's Orders",
-    value: 156,
-    change: 8.2,
-    icon: ShoppingBag,
-    color: 'bg-green-500',
-    isCurrency: false,
-  },
-  {
-    label: 'Active Customers',
-    value: 2340,
-    change: -2.4,
-    icon: Users,
-    color: 'bg-purple-500',
-    isCurrency: false,
-  },
-  {
-    label: 'Avg Order Value',
-    value: 32.5,
-    change: 5.7,
-    icon: TrendingUp,
-    color: 'bg-amber-500',
-  },
-];
-
-const recentOrders = [
-  { id: 'ORD-001', customer: 'John Doe', amount: 45.99, status: 'Completed', time: '2 min ago' },
-  { id: 'ORD-002', customer: 'Jane Smith', amount: 78.5, status: 'Preparing', time: '5 min ago' },
-  { id: 'ORD-003', customer: 'Walk-in', amount: 23.0, status: 'Completed', time: '12 min ago' },
-  { id: 'ORD-004', customer: 'Mike Johnson', amount: 156.0, status: 'Pending', time: '15 min ago' },
-  { id: 'ORD-005', customer: 'Sarah Williams', amount: 67.25, status: 'Completed', time: '20 min ago' },
-];
-
-const topProducts = [
-  { name: 'Classic Burger', sold: 89, revenue: 889.11 },
-  { name: 'Cappuccino', sold: 76, revenue: 379.24 },
-  { name: 'Margherita Pizza', sold: 54, revenue: 701.46 },
-  { name: 'Caesar Salad', sold: 43, revenue: 343.57 },
-  { name: 'Iced Tea', sold: 38, revenue: 132.62 },
-];
+import { DollarSign, ShoppingBag, Users, TrendingUp, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/helpers';
+import { useDailySummary, useOrders, useTopProducts, useSalesReport } from '../hooks/useApi';
+import { Skeleton } from '../components/ui/Skeleton';
+import { useNavigate } from 'react-router-dom';
 
 export function DashboardPage() {
+  const navigate = useNavigate();
+  const { data: daily, isLoading: loadingDaily } = useDailySummary();
+  const { data: salesData } = useSalesReport();
+  const { data: ordersData, isLoading: loadingOrders } = useOrders();
+  const { data: topProducts, isLoading: loadingTop } = useTopProducts();
+
+  const recentOrders = (ordersData || []).slice(0, 8);
+  const topProds = (topProducts || []).slice(0, 5);
+
+  const stats = [
+    { label: 'Total Revenue', value: formatCurrency(salesData?.totalRevenue || 0), icon: DollarSign, change: '+12.5%', up: true, color: 'bg-blue-500' },
+    { label: "Today's Orders", value: String(daily?.orderCount || 0), icon: ShoppingBag, change: '+8.2%', up: true, color: 'bg-green-500' },
+    { label: 'Avg Order Value', value: formatCurrency(salesData?.averageOrderValue || 0), icon: TrendingUp, change: '+5.7%', up: true, color: 'bg-amber-500' },
+    { label: 'Total Orders', value: String(salesData?.orderCount || 0), icon: Users, change: '+4.1%', up: true, color: 'bg-purple-500' },
+  ];
+
+  const statusColor: Record<string, string> = {
+    COMPLETED: 'bg-green-100 text-green-700', CONFIRMED: 'bg-blue-100 text-blue-700',
+    PREPARING: 'bg-amber-100 text-amber-700', READY: 'bg-purple-100 text-purple-700',
+    PENDING: 'bg-gray-100 text-gray-700', CANCELLED: 'bg-red-100 text-red-700',
+    SERVED: 'bg-teal-100 text-teal-700',
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
+    <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold text-dark-900 dark:text-white">
-          Dashboard
-        </h1>
-        <p className="text-gray-500 mt-1">Welcome back! Here's your business overview.</p>
+        <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <p className="text-gray-500 mt-1">Welcome back! Here's what's happening today.</p>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-dark-800 rounded-2xl p-5 shadow-card"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 ${stat.color} rounded-xl flex items-center justify-center`}>
-                <stat.icon className="w-5 h-5 text-white" />
+        {stats.map((stat, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+            className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-card">
+            {loadingDaily ? <Skeleton className="h-20 w-full" /> : <>
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center`}>
+                  <stat.icon className="w-5 h-5 text-white" />
+                </div>
+                <span className={`flex items-center text-xs font-medium ${stat.up ? 'text-green-600' : 'text-red-500'}`}>
+                  {stat.up ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
+                  {stat.change}
+                </span>
               </div>
-              <span
-                className={`flex items-center gap-0.5 text-xs font-medium ${
-                  stat.change >= 0 ? 'text-green-600' : 'text-red-500'
-                }`}
-              >
-                {stat.change >= 0 ? (
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                ) : (
-                  <ArrowDownRight className="w-3.5 h-3.5" />
-                )}
-                {Math.abs(stat.change)}%
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-dark-900 dark:text-white">
-              {stat.isCurrency === false
-                ? stat.value.toLocaleString()
-                : formatCurrency(stat.value)}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+              <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+            </>}
           </motion.div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Orders */}
-        <div className="lg:col-span-2 bg-white dark:bg-dark-800 rounded-2xl shadow-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg text-dark-900 dark:text-white">Recent Orders</h2>
-            <button className="text-sm text-primary hover:underline">View All</button>
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-card">
+          <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white">Recent Orders</h2>
+            <button onClick={() => navigate('/orders')} className="text-sm text-blue-600 hover:underline">View All</button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-100 dark:border-dark-700">
-                  <th className="pb-3 font-medium">Order</th>
-                  <th className="pb-3 font-medium">Customer</th>
-                  <th className="pb-3 font-medium">Amount</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-dark-700">
-                {recentOrders.map((order) => (
-                  <tr key={order.id} className="text-sm">
-                    <td className="py-3 font-medium text-dark-900 dark:text-white">{order.id}</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">{order.customer}</td>
-                    <td className="py-3 font-medium text-dark-900 dark:text-white">
-                      {formatCurrency(order.amount)}
-                    </td>
-                    <td className="py-3">
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                          order.status === 'Completed'
-                            ? 'bg-green-100 text-green-700'
-                            : order.status === 'Preparing'
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-3 text-gray-500">{order.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {loadingOrders ? <div className="p-5"><Skeleton className="h-40 w-full" /></div> : (
+              <table className="w-full">
+                <thead><tr className="text-xs text-gray-500 uppercase border-b border-gray-100 dark:border-gray-700">
+                  <th className="text-left p-4">Order</th><th className="text-left p-4">Customer</th>
+                  <th className="text-left p-4">Items</th><th className="text-left p-4">Total</th>
+                  <th className="text-left p-4">Status</th><th className="text-left p-4">Date</th>
+                </tr></thead>
+                <tbody>
+                  {recentOrders.map((order: any) => (
+                    <tr key={order.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                      <td className="p-4 font-medium text-sm">{order.orderNumber}</td>
+                      <td className="p-4 text-sm text-gray-600 dark:text-gray-300">{order.customer ? `${order.customer.firstName} ${order.customer.lastName || ''}` : 'Walk-in'}</td>
+                      <td className="p-4 text-sm text-gray-600">{order.items?.length || 0}</td>
+                      <td className="p-4 text-sm font-medium">{formatCurrency(order.totalAmount)}</td>
+                      <td className="p-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[order.status] || 'bg-gray-100'}`}>{order.status}</span></td>
+                      <td className="p-4 text-sm text-gray-500">{formatDate(new Date(order.createdAt))}</td>
+                    </tr>
+                  ))}
+                  {recentOrders.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No orders yet</td></tr>}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
-        {/* Top Products */}
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-card p-6">
-          <h2 className="font-semibold text-lg text-dark-900 dark:text-white mb-4">
-            Top Products
-          </h2>
-          <div className="space-y-4">
-            {topProducts.map((product, index) => (
-              <div key={product.name} className="flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                  {index + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-dark-900 dark:text-white truncate">
-                    {product.name}
-                  </p>
-                  <p className="text-xs text-gray-500">{product.sold} sold</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card">
+          <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white">Top Products</h2>
+          </div>
+          <div className="p-5 space-y-4">
+            {loadingTop ? <Skeleton className="h-40 w-full" /> : topProds.length > 0 ? topProds.map((item: any, i: number) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="w-7 h-7 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.product?.name || 'Unknown'}</p>
+                    <p className="text-xs text-gray-500">{item.totalQuantity} sold</p>
+                  </div>
                 </div>
-                <span className="text-sm font-semibold text-dark-900 dark:text-white">
-                  {formatCurrency(product.revenue)}
-                </span>
+                <p className="text-sm font-medium">{formatCurrency(item.product?.price || 0)}</p>
               </div>
-            ))}
+            )) : <p className="text-sm text-gray-400 text-center py-4">No data yet</p>}
           </div>
         </div>
       </div>

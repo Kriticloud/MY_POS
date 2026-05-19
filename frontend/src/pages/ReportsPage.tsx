@@ -1,136 +1,117 @@
 import { formatCurrency } from '../utils/helpers';
-import { BarChart3, TrendingUp, Download, Calendar } from 'lucide-react';
-
-const salesData = [
-  { day: 'Mon', revenue: 2450 },
-  { day: 'Tue', revenue: 3200 },
-  { day: 'Wed', revenue: 2890 },
-  { day: 'Thu', revenue: 3560 },
-  { day: 'Fri', revenue: 4120 },
-  { day: 'Sat', revenue: 5200 },
-  { day: 'Sun', revenue: 4800 },
-];
-
-const maxRevenue = Math.max(...salesData.map((d) => d.revenue));
+import { BarChart3, TrendingUp, ShoppingBag, DollarSign } from 'lucide-react';
+import { useSalesReport, useTopProducts, useOrders } from '../hooks/useApi';
+import { Skeleton } from '../components/ui/Skeleton';
 
 export function ReportsPage() {
+  const { data: sales, isLoading: loadingSales } = useSalesReport();
+  const { data: topProducts, isLoading: loadingTop } = useTopProducts();
+  const { data: orders } = useOrders();
+
+  const paymentBreakdown = (orders || []).reduce((acc: Record<string, number>, o: any) => {
+    (o.payments || []).forEach((p: any) => { acc[p.method] = (acc[p.method] || 0) + p.amount; });
+    return acc;
+  }, {});
+  const totalPayments = Object.values(paymentBreakdown).reduce((s: number, v) => s + (v as number), 0);
+
+  const orderTypeBreakdown = (orders || []).reduce((acc: Record<string, number>, o: any) => {
+    acc[o.orderType] = (acc[o.orderType] || 0) + 1;
+    return acc;
+  }, {});
+
+  const stats = [
+    { label: 'Total Revenue', value: formatCurrency(sales?.totalRevenue || 0), icon: DollarSign, color: 'bg-blue-500' },
+    { label: 'Total Orders', value: String(sales?.orderCount || 0), icon: ShoppingBag, color: 'bg-green-500' },
+    { label: 'Avg Order Value', value: formatCurrency(sales?.averageOrderValue || 0), icon: TrendingUp, color: 'bg-amber-500' },
+    { label: 'Total Tax', value: formatCurrency(sales?.totalTax || 0), icon: BarChart3, color: 'bg-purple-500' },
+  ];
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-dark-900 dark:text-white">Reports</h1>
-          <p className="text-gray-500 mt-1">Business analytics and insights</p>
-        </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-xl text-sm font-medium hover:bg-gray-50">
-            <Calendar className="w-4 h-4" />
-            This Week
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium shadow-lg shadow-primary/25">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Reports</h1>
+        <p className="text-gray-500 mt-1">Business analytics and insights</p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-card p-5">
-          <p className="text-sm text-gray-500">Weekly Revenue</p>
-          <p className="text-2xl font-bold text-dark-900 dark:text-white mt-1">{formatCurrency(26220)}</p>
-          <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +12.5% vs last week
-          </p>
-        </div>
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-card p-5">
-          <p className="text-sm text-gray-500">Total Orders</p>
-          <p className="text-2xl font-bold text-dark-900 dark:text-white mt-1">342</p>
-          <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +8.3% vs last week
-          </p>
-        </div>
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-card p-5">
-          <p className="text-sm text-gray-500">Avg Order Value</p>
-          <p className="text-2xl font-bold text-dark-900 dark:text-white mt-1">{formatCurrency(76.67)}</p>
-          <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +3.8% vs last week
-          </p>
-        </div>
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-card p-5">
-          <p className="text-sm text-gray-500">Net Profit</p>
-          <p className="text-2xl font-bold text-dark-900 dark:text-white mt-1">{formatCurrency(8450)}</p>
-          <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +5.2% vs last week
-          </p>
-        </div>
-      </div>
-
-      {/* Revenue Chart */}
-      <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-card p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <BarChart3 className="w-5 h-5 text-primary" />
-          <h2 className="font-semibold text-lg text-dark-900 dark:text-white">Daily Revenue</h2>
-        </div>
-        <div className="flex items-end gap-4 h-48">
-          {salesData.map((item) => (
-            <div key={item.day} className="flex-1 flex flex-col items-center gap-2">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {formatCurrency(item.revenue)}
-              </span>
-              <div
-                className="w-full bg-primary/20 rounded-t-lg relative overflow-hidden"
-                style={{ height: `${(item.revenue / maxRevenue) * 100}%` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-primary to-primary/60 rounded-t-lg" />
+      {loadingSales ? <Skeleton className="h-32 w-full" /> : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-card">
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center`}>
+                  <stat.icon className="w-5 h-5 text-white" />
+                </div>
+                <p className="text-sm text-gray-500">{stat.label}</p>
               </div>
-              <span className="text-xs text-gray-500">{item.day}</span>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Category Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-card p-6">
-          <h2 className="font-semibold text-lg text-dark-900 dark:text-white mb-4">Sales by Category</h2>
-          <div className="space-y-3">
-            {[
-              { name: 'Food', percent: 45, color: 'bg-red-500' },
-              { name: 'Beverages', percent: 28, color: 'bg-blue-500' },
-              { name: 'Desserts', percent: 15, color: 'bg-amber-500' },
-              { name: 'Snacks', percent: 8, color: 'bg-green-500' },
-              { name: 'Combos', percent: 4, color: 'bg-purple-500' },
-            ].map((cat) => (
-              <div key={cat.name}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">{cat.name}</span>
-                  <span className="font-medium text-dark-900 dark:text-white">{cat.percent}%</span>
-                </div>
-                <div className="h-2 bg-gray-100 dark:bg-dark-600 rounded-full overflow-hidden">
-                  <div className={`h-full ${cat.color} rounded-full`} style={{ width: `${cat.percent}%` }} />
-                </div>
-              </div>
-            ))}
+        {/* Top Products */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card">
+          <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white">Top Selling Products</h2>
           </div>
+          {loadingTop ? <div className="p-5"><Skeleton className="h-40 w-full" /></div> : (
+            <div className="p-5 space-y-3">
+              {(topProducts || []).slice(0, 8).map((item: any, i: number) => {
+                const maxQty = (topProducts || [])[0]?.totalQuantity || 1;
+                return (
+                  <div key={i}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">{item.product?.name || 'Unknown'}</span>
+                      <span className="text-gray-500">{item.totalQuantity} sold</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(item.totalQuantity / maxQty) * 100}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+              {(topProducts || []).length === 0 && <p className="text-sm text-gray-400 text-center py-4">No data</p>}
+            </div>
+          )}
         </div>
 
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-card p-6">
-          <h2 className="font-semibold text-lg text-dark-900 dark:text-white mb-4">Payment Methods</h2>
-          <div className="space-y-3">
-            {[
-              { name: 'Cash', percent: 38, amount: 9963 },
-              { name: 'Card', percent: 35, amount: 9177 },
-              { name: 'UPI', percent: 22, amount: 5768 },
-              { name: 'Wallet', percent: 5, amount: 1311 },
-            ].map((method) => (
-              <div key={method.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
-                <div>
-                  <p className="text-sm font-medium text-dark-900 dark:text-white">{method.name}</p>
-                  <p className="text-xs text-gray-500">{method.percent}% of total</p>
+        {/* Payment Methods & Order Types */}
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+              <h2 className="font-semibold text-gray-900 dark:text-white">Payment Methods</h2>
+            </div>
+            <div className="p-5 space-y-3">
+              {Object.entries(paymentBreakdown).map(([method, amount]) => (
+                <div key={method} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="w-3 h-3 rounded-full bg-blue-500" />
+                    <span className="text-sm font-medium">{method}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{formatCurrency(amount as number)}</p>
+                    <p className="text-xs text-gray-500">{totalPayments > 0 ? Math.round(((amount as number) / totalPayments) * 100) : 0}%</p>
+                  </div>
                 </div>
-                <span className="font-semibold text-dark-900 dark:text-white">{formatCurrency(method.amount)}</span>
-              </div>
-            ))}
+              ))}
+              {Object.keys(paymentBreakdown).length === 0 && <p className="text-sm text-gray-400 text-center">No data</p>}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+              <h2 className="font-semibold text-gray-900 dark:text-white">Order Types</h2>
+            </div>
+            <div className="p-5 space-y-3">
+              {Object.entries(orderTypeBreakdown).map(([type, count]) => (
+                <div key={type} className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{type.replace('_', ' ')}</span>
+                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium">{count as number} orders</span>
+                </div>
+              ))}
+              {Object.keys(orderTypeBreakdown).length === 0 && <p className="text-sm text-gray-400 text-center">No data</p>}
+            </div>
           </div>
         </div>
       </div>

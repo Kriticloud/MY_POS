@@ -1,136 +1,90 @@
 import { motion } from 'framer-motion';
-import { Clock, ChefHat, CheckCircle2 } from 'lucide-react';
-
-const kitchenOrders = [
-  {
-    id: 'ORD-A7F2B1',
-    table: 'Table 2',
-    time: '5 min ago',
-    status: 'PREPARING',
-    items: [
-      { name: 'Classic Burger', qty: 2, notes: 'No onions' },
-      { name: 'French Fries', qty: 2 },
-      { name: 'Cappuccino', qty: 1 },
-    ],
-  },
-  {
-    id: 'ORD-C3D4E5',
-    table: 'Table 3',
-    time: '8 min ago',
-    status: 'CONFIRMED',
-    priority: true,
-    items: [
-      { name: 'Margherita Pizza', qty: 1 },
-      { name: 'Caesar Salad', qty: 2 },
-      { name: 'Iced Tea', qty: 3 },
-    ],
-  },
-  {
-    id: 'ORD-F6G7H8',
-    table: 'Takeaway',
-    time: '12 min ago',
-    status: 'PREPARING',
-    items: [
-      { name: 'Grilled Salmon', qty: 1 },
-      { name: 'Cheesecake', qty: 1 },
-    ],
-  },
-  {
-    id: 'ORD-I9J0K1',
-    table: 'Table 8',
-    time: '3 min ago',
-    status: 'CONFIRMED',
-    items: [
-      { name: 'Chicken Sandwich', qty: 3 },
-      { name: 'Onion Rings', qty: 2 },
-      { name: 'Orange Juice', qty: 3 },
-    ],
-  },
-];
+import { Clock, ChefHat, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useKitchenQueue, useUpdateOrderStatus } from '../hooks/useApi';
+import { Skeleton } from '../components/ui/Skeleton';
+import toast from 'react-hot-toast';
 
 export function KitchenPage() {
+  const { data: orders, isLoading } = useKitchenQueue();
+  const updateStatus = useUpdateOrderStatus();
+
+  const handleStatus = async (orderId: string, status: string) => {
+    try {
+      await updateStatus.mutateAsync({ id: orderId, status });
+      toast.success(`Order moved to ${status}`);
+    } catch { toast.error('Failed to update order'); }
+  };
+
+  const getElapsed = (createdAt: string) => {
+    const mins = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
+    return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  };
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <ChefHat className="w-7 h-7 text-primary" />
-          <div>
-            <h1 className="font-display text-2xl font-bold text-dark-900 dark:text-white">
-              Kitchen Display
-            </h1>
-            <p className="text-gray-500 mt-0.5">Real-time order queue</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Kitchen Display</h1>
+          <p className="text-gray-500 mt-1">Active orders in the kitchen</p>
         </div>
-        <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-4 py-2 rounded-xl">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-sm font-medium">Live</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Live
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {kitchenOrders.map((order, index) => (
-          <motion.div
-            key={order.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className={`bg-white dark:bg-dark-800 rounded-2xl shadow-card overflow-hidden ${
-              order.priority ? 'ring-2 ring-red-400' : ''
-            }`}
-          >
-            {/* Header */}
-            <div className={`px-4 py-3 flex items-center justify-between ${
-              order.status === 'PREPARING' ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-blue-50 dark:bg-blue-900/20'
-            }`}>
-              <div>
-                <p className="font-semibold text-sm text-dark-900 dark:text-white">{order.id}</p>
-                <p className="text-xs text-gray-500">{order.table}</p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-xs text-gray-500">{order.time}</span>
-              </div>
-            </div>
-
-            {order.priority && (
-              <div className="bg-red-500 text-white text-center py-1 text-xs font-bold">
-                ⚡ PRIORITY
-              </div>
-            )}
-
-            {/* Items */}
-            <div className="p-4 space-y-2.5">
-              {order.items.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-md flex items-center justify-center text-xs font-bold shrink-0">
-                    {item.qty}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-dark-900 dark:text-white">{item.name}</p>
-                    {item.notes && (
-                      <p className="text-xs text-amber-600 mt-0.5">⚠️ {item.notes}</p>
-                    )}
+      {isLoading ? <Skeleton className="h-60 w-full" /> : (orders || []).length === 0 ? (
+        <div className="text-center py-20 text-gray-400">
+          <ChefHat className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p className="text-lg">No active orders</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {(orders || []).map((order: any) => {
+            const elapsed = getElapsed(order.createdAt);
+            const isPriority = parseInt(elapsed) > 15;
+            return (
+              <motion.div key={order.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-card overflow-hidden ${isPriority ? 'ring-2 ring-red-400' : ''}`}>
+                <div className={`px-4 py-3 flex items-center justify-between ${order.status === 'CONFIRMED' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-amber-50 dark:bg-amber-900/20'}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm">{order.orderNumber}</span>
+                    {order.table && <span className="text-xs bg-white dark:bg-gray-700 px-2 py-0.5 rounded-full">{order.table.name}</span>}
+                    {isPriority && <AlertCircle className="w-4 h-4 text-red-500" />}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                    <Clock className="w-3.5 h-3.5" /> {elapsed}
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Actions */}
-            <div className="px-4 pb-4 flex gap-2">
-              {order.status === 'CONFIRMED' ? (
-                <button className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl text-sm transition-colors">
-                  Start Preparing
-                </button>
-              ) : (
-                <button className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white font-medium rounded-xl text-sm transition-colors flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Ready
-                </button>
-              )}
-            </div>
-          </motion.div>
-        ))}
-      </div>
+                <div className="p-4 space-y-2">
+                  {(order.items || []).map((item: any, i: number) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="font-bold text-blue-600 text-sm">{item.quantity}x</span>
+                      <div>
+                        <p className="text-sm font-medium">{item.product?.name || 'Item'}</p>
+                        {item.notes && <p className="text-xs text-amber-600 mt-0.5">Note: {item.notes}</p>}
+                      </div>
+                    </div>
+                  ))}
+                  {order.notes && <p className="text-xs bg-amber-50 text-amber-700 p-2 rounded-lg mt-2">Order note: {order.notes}</p>}
+                </div>
+                <div className="px-4 pb-4">
+                  {order.status === 'CONFIRMED' ? (
+                    <button onClick={() => handleStatus(order.id, 'PREPARING')}
+                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium flex items-center justify-center gap-2">
+                      <ChefHat className="w-4 h-4" /> Start Preparing
+                    </button>
+                  ) : (
+                    <button onClick={() => handleStatus(order.id, 'READY')}
+                      className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" /> Mark Ready
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

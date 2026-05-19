@@ -1,87 +1,110 @@
 import { motion } from 'framer-motion';
-import { Users, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, Clock, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { useTables, useUpdateTableStatus } from '../hooks/useApi';
+import { Skeleton } from '../components/ui/Skeleton';
+import { formatCurrency } from '../utils/helpers';
+import toast from 'react-hot-toast';
+import { useState } from 'react';
 
-type TableStatus = 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'CLEANING';
-
-const tables = [
-  { id: '1', name: 'Table 1', capacity: 2, status: 'AVAILABLE' as TableStatus, floor: 'Ground Floor' },
-  { id: '2', name: 'Table 2', capacity: 2, status: 'OCCUPIED' as TableStatus, floor: 'Ground Floor', order: 'ORD-001' },
-  { id: '3', name: 'Table 3', capacity: 4, status: 'OCCUPIED' as TableStatus, floor: 'Ground Floor', order: 'ORD-002' },
-  { id: '4', name: 'Table 4', capacity: 4, status: 'RESERVED' as TableStatus, floor: 'Ground Floor' },
-  { id: '5', name: 'Table 5', capacity: 4, status: 'AVAILABLE' as TableStatus, floor: 'Ground Floor' },
-  { id: '6', name: 'Table 6', capacity: 6, status: 'CLEANING' as TableStatus, floor: 'Ground Floor' },
-  { id: '7', name: 'Table 7', capacity: 4, status: 'AVAILABLE' as TableStatus, floor: 'First Floor' },
-  { id: '8', name: 'Table 8', capacity: 4, status: 'OCCUPIED' as TableStatus, floor: 'First Floor', order: 'ORD-003' },
-  { id: '9', name: 'Table 9', capacity: 6, status: 'AVAILABLE' as TableStatus, floor: 'First Floor' },
-  { id: '10', name: 'Table 10', capacity: 6, status: 'RESERVED' as TableStatus, floor: 'First Floor' },
-  { id: '11', name: 'Table 11', capacity: 6, status: 'AVAILABLE' as TableStatus, floor: 'First Floor' },
-  { id: '12', name: 'Table 12', capacity: 6, status: 'OCCUPIED' as TableStatus, floor: 'First Floor', order: 'ORD-004' },
-];
-
-const statusConfig: Record<TableStatus, { color: string; bg: string; icon: typeof Users; label: string }> = {
-  AVAILABLE: { color: 'text-green-600', bg: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800', icon: CheckCircle, label: 'Available' },
-  OCCUPIED: { color: 'text-red-600', bg: 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800', icon: Users, label: 'Occupied' },
-  RESERVED: { color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800', icon: Clock, label: 'Reserved' },
-  CLEANING: { color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800', icon: AlertCircle, label: 'Cleaning' },
+const statusConfig: Record<string, { bg: string; text: string; icon: any; dot: string }> = {
+  AVAILABLE: { bg: 'bg-green-50 dark:bg-green-900/20 border-green-200', text: 'text-green-700', icon: CheckCircle, dot: 'bg-green-500' },
+  OCCUPIED: { bg: 'bg-red-50 dark:bg-red-900/20 border-red-200', text: 'text-red-700', icon: Users, dot: 'bg-red-500' },
+  RESERVED: { bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200', text: 'text-amber-700', icon: Clock, dot: 'bg-amber-500' },
+  CLEANING: { bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200', text: 'text-blue-700', icon: AlertCircle, dot: 'bg-blue-500' },
 };
 
 export function TablesPage() {
-  const floors = [...new Set(tables.map((t) => t.floor))];
+  const { data: tables, isLoading } = useTables();
+  const updateStatus = useUpdateTableStatus();
+  const [selected, setSelected] = useState<any>(null);
+
+  const handleStatus = async (tableId: string, status: string) => {
+    try {
+      await updateStatus.mutateAsync({ id: tableId, status });
+      toast.success(`Table updated to ${status}`);
+      setSelected(null);
+    } catch { toast.error('Failed to update table'); }
+  };
+
+  const floors = (tables || []).reduce((acc: Record<string, any[]>, t: any) => {
+    const floor = t.floor || 'Main';
+    (acc[floor] = acc[floor] || []).push(t);
+    return acc;
+  }, {});
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-dark-900 dark:text-white">Tables</h1>
-          <p className="text-gray-500 mt-1">Manage restaurant table layout</p>
+          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Tables</h1>
+          <p className="text-gray-500 mt-1">Manage table assignments and status</p>
         </div>
-        <div className="flex gap-4">
-          {Object.entries(statusConfig).map(([key, config]) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded-full ${config.color.replace('text-', 'bg-')}`} />
-              <span className="text-xs text-gray-600 dark:text-gray-400">{config.label}</span>
+        <div className="flex items-center gap-4">
+          {Object.entries(statusConfig).map(([status, cfg]) => (
+            <div key={status} className="flex items-center gap-1.5 text-xs text-gray-500">
+              <span className={`w-2 h-2 rounded-full ${cfg.dot}`} /> {status}
             </div>
           ))}
         </div>
       </div>
 
-      {floors.map((floor) => (
+      {isLoading ? <Skeleton className="h-60 w-full" /> : Object.entries(floors).map(([floor, floorTables]) => (
         <div key={floor}>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            {floor}
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {tables
-              .filter((t) => t.floor === floor)
-              .map((table, index) => {
-                const config = statusConfig[table.status];
-                const Icon = config.icon;
-                return (
-                  <motion.div
-                    key={table.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all hover:scale-105 ${config.bg}`}
-                  >
-                    <div className="text-center">
-                      <Icon className={`w-6 h-6 mx-auto mb-2 ${config.color}`} />
-                      <p className="font-semibold text-dark-900 dark:text-white text-sm">
-                        {table.name}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {table.capacity} seats
-                      </p>
-                      {table.status === 'OCCUPIED' && (
-                        <p className="text-xs font-medium text-red-600 mt-1">{(table as any).order}</p>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{floor}</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {(floorTables as any[]).map((table: any) => {
+              const cfg = statusConfig[table.status] || statusConfig.AVAILABLE;
+              const Icon = cfg.icon;
+              const activeOrder = (table.orders || [])[0];
+              return (
+                <motion.button key={table.id} whileTap={{ scale: 0.97 }} onClick={() => setSelected(table)}
+                  className={`${cfg.bg} border rounded-xl p-4 text-left transition-all hover:shadow-md`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <Icon className={`w-5 h-5 ${cfg.text}`} />
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${cfg.text} bg-white/50`}>{table.status}</span>
+                  </div>
+                  <p className="font-bold text-gray-900 dark:text-white">{table.name}</p>
+                  <p className="text-xs text-gray-500 mt-1">{table.capacity} seats</p>
+                  {activeOrder && <p className="text-xs text-blue-600 mt-1 font-medium">{activeOrder.orderNumber}</p>}
+                </motion.button>
+              );
+            })}
           </div>
         </div>
       ))}
+
+      {/* Table Detail Modal */}
+      {selected && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelected(null)}>
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} onClick={e => e.stopPropagation()}
+            className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">{selected.name}</h2>
+              <button onClick={() => setSelected(null)}><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3 mb-4">
+              <p className="text-sm"><span className="text-gray-500">Capacity:</span> {selected.capacity} seats</p>
+              <p className="text-sm"><span className="text-gray-500">Floor:</span> {selected.floor}</p>
+              <p className="text-sm"><span className="text-gray-500">Status:</span> <span className={`font-medium ${statusConfig[selected.status]?.text}`}>{selected.status}</span></p>
+              {(selected.orders || []).length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Active Order</p>
+                  <p className="text-sm font-medium">{selected.orders[0].orderNumber} - {formatCurrency(selected.orders[0].totalAmount)}</p>
+                </div>
+              )}
+            </div>
+            <p className="text-xs font-medium text-gray-500 mb-2">Change Status</p>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.keys(statusConfig).map(status => (
+                <button key={status} onClick={() => handleStatus(selected.id, status)} disabled={selected.status === status}
+                  className={`py-2 rounded-lg text-xs font-medium transition-all ${selected.status === status ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                  {status}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }
