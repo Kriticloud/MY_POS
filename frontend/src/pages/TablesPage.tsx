@@ -5,6 +5,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { formatCurrency } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
+import { useSettingsStore, getPageTitle } from '../store/settingsStore';
 
 const statusConfig: Record<string, { bg: string; text: string; icon: any; dot: string }> = {
   AVAILABLE: { bg: 'bg-green-50 dark:bg-green-900/20 border-green-200', text: 'text-green-700', icon: CheckCircle, dot: 'bg-green-500' },
@@ -17,11 +18,14 @@ export function TablesPage() {
   const { data: tables, isLoading } = useTables();
   const updateStatus = useUpdateTableStatus();
   const [selected, setSelected] = useState<any>(null);
+  const businessType = useSettingsStore((s) => s.businessType);
+  const pageInfo = getPageTitle('/tables', businessType);
+  const isSalon = businessType === 'SALON';
 
   const handleStatus = async (tableId: string, status: string) => {
     try {
       await updateStatus.mutateAsync({ id: tableId, status });
-      toast.success(`Table updated to ${status}`);
+      toast.success(`${isSalon ? 'Station' : 'Table'} updated to ${status}`);
       setSelected(null);
     } catch { toast.error('Failed to update table'); }
   };
@@ -36,8 +40,8 @@ export function TablesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Tables</h1>
-          <p className="text-gray-500 mt-1">Manage table assignments and status</p>
+          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1>
+          <p className="text-gray-500 mt-1">{pageInfo.subtitle}</p>
         </div>
         <div className="flex items-center gap-4">
           {Object.entries(statusConfig).map(([status, cfg]) => (

@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import type { Product, Category, Order, Customer, Table, Employee, InventoryItem, AuditLog, LoyaltyTransaction, ApiResponse } from '../types';
 
 // Products
-export function useProducts(params?: { search?: string; categoryId?: string }) {
+export function useProducts(params?: { search?: string; categoryId?: string; businessType?: string }) {
   return useQuery({
     queryKey: ['products', params],
     queryFn: async () => {
@@ -55,11 +55,11 @@ export function useDeleteProduct() {
 }
 
 // Categories
-export function useCategories() {
+export function useCategories(params?: { businessType?: string }) {
   return useQuery({
-    queryKey: ['categories'],
+    queryKey: ['categories', params],
     queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Category[]>>('/categories');
+      const { data } = await api.get<ApiResponse<Category[]>>('/categories', { params });
       return data.data;
     },
   });

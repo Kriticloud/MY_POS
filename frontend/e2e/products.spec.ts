@@ -2,6 +2,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Products Page', () => {
   test.beforeEach(async ({ page }) => {
+    await page.route('**/api/settings', async (route) => {
+      const response = await route.fetch();
+      const json = await response.json();
+      if (json.data) {
+        json.data = json.data.map((s: any) => s.key === 'businessType' ? { ...s, value: 'RESTAURANT' } : s);
+      }
+      await route.fulfill({ json });
+    });
     await page.goto('/login');
     await page.getByRole('textbox').first().fill('admin@mypos.com');
     await page.getByRole('textbox').nth(1).fill('admin123');
@@ -19,7 +27,7 @@ test.describe('Products Page', () => {
   test('should display product list', async ({ page }) => {
     await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Classic Burger')).toBeVisible();
-    await expect(page.getByText('Mango Smoothie')).toBeVisible();
+    await expect(page.getByText('Cappuccino')).toBeVisible();
   });
 
   test('should search products', async ({ page }) => {

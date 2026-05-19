@@ -35,17 +35,20 @@ export function SettingsPage() {
 
   const saveSection = async (keys: string[], group: string) => {
     try {
+      // Capture current form values before any async operations
+      // to avoid race condition where invalidateQueries refetches and resets the form mid-save
+      const snapshot = { ...form };
       for (const key of keys) {
-        if (form[key] !== undefined) await updateSetting.mutateAsync({ key, value: form[key], group });
+        if (snapshot[key] !== undefined) await updateSetting.mutateAsync({ key, value: snapshot[key], group });
       }
       // Sync business settings to global store immediately
       if (group === 'business') {
         updateGlobalSettings({
-          currency: form.currency || 'USD',
-          businessType: (form.businessType as BusinessType) || 'RESTAURANT',
-          businessName: form.businessName || 'MyPOS',
-          taxRate: parseFloat(form.taxRate) || 8.5,
-          taxInclusive: form.taxInclusive === 'true',
+          currency: snapshot.currency || 'USD',
+          businessType: (snapshot.businessType as BusinessType) || 'RESTAURANT',
+          businessName: snapshot.businessName || 'MyPOS',
+          taxRate: parseFloat(snapshot.taxRate) || 8.5,
+          taxInclusive: snapshot.taxInclusive === 'true',
         });
       }
       toast.success('Settings saved — changes applied across the app');

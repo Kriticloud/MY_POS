@@ -49,6 +49,7 @@ export interface Product {
   taxRate: number;
   categoryId?: string;
   category?: Category;
+  duration?: number;
   modifiers?: Record<string, unknown>;
   variants?: Record<string, unknown>;
   batchNumber?: string;
@@ -92,7 +93,7 @@ export interface Order {
 }
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'SERVED' | 'COMPLETED' | 'CANCELLED';
-export type OrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'ONLINE';
+export type OrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'ONLINE' | 'WALK_IN' | 'APPOINTMENT' | 'IN_STORE' | 'PICKUP';
 export type PaymentMethod = 'CASH' | 'CARD' | 'UPI' | 'WALLET' | 'MIXED';
 
 export interface OrderItem {

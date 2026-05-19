@@ -29,6 +29,6 @@ test.describe('Customers Page', () => {
 
   test('should open add customer modal', async ({ page }) => {
     await page.getByRole('button', { name: 'Add Customer' }).click();
-    await expect(page.getByText('Add Customer')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Add Customer' })).toBeVisible();
   });
 });

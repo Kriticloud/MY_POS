@@ -4,9 +4,14 @@ import { formatCurrency, formatDate } from '../utils/helpers';
 import { useDailySummary, useOrders, useTopProducts, useSalesReport } from '../hooks/useApi';
 import { Skeleton } from '../components/ui/Skeleton';
 import { useNavigate } from 'react-router-dom';
+import { useSettingsStore, getBusinessConfig } from '../store/settingsStore';
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const businessType = useSettingsStore((s) => s.businessType);
+  const config = getBusinessConfig(businessType);
+  const orderLabel = config.renamedLabels['/orders'] || 'Orders';
+  const productLabel = config.renamedLabels['/products'] || 'Products';
   const { data: daily, isLoading: loadingDaily } = useDailySummary();
   const { data: salesData } = useSalesReport();
   const { data: ordersData, isLoading: loadingOrders } = useOrders();
@@ -17,9 +22,9 @@ export function DashboardPage() {
 
   const stats = [
     { label: 'Total Revenue', value: formatCurrency(salesData?.totalRevenue || 0), icon: DollarSign, change: '+12.5%', up: true, color: 'bg-blue-500' },
-    { label: "Today's Orders", value: String(daily?.orderCount || 0), icon: ShoppingBag, change: '+8.2%', up: true, color: 'bg-green-500' },
-    { label: 'Avg Order Value', value: formatCurrency(salesData?.averageOrderValue || 0), icon: TrendingUp, change: '+5.7%', up: true, color: 'bg-amber-500' },
-    { label: 'Total Orders', value: String(salesData?.orderCount || 0), icon: Users, change: '+4.1%', up: true, color: 'bg-purple-500' },
+    { label: `Today's ${orderLabel}`, value: String(daily?.orderCount || 0), icon: ShoppingBag, change: '+8.2%', up: true, color: 'bg-green-500' },
+    { label: `Avg ${orderLabel.slice(0, -1)} Value`, value: formatCurrency(salesData?.averageOrderValue || 0), icon: TrendingUp, change: '+5.7%', up: true, color: 'bg-amber-500' },
+    { label: `Total ${orderLabel}`, value: String(salesData?.orderCount || 0), icon: Users, change: '+4.1%', up: true, color: 'bg-purple-500' },
   ];
 
   const statusColor: Record<string, string> = {
@@ -60,7 +65,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-card">
           <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Recent Orders</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">Recent {orderLabel}</h2>
             <button onClick={() => navigate('/orders')} className="text-sm text-blue-600 hover:underline">View All</button>
           </div>
           <div className="overflow-x-auto">
@@ -82,7 +87,7 @@ export function DashboardPage() {
                       <td className="p-4 text-sm text-gray-500">{formatDate(new Date(order.createdAt))}</td>
                     </tr>
                   ))}
-                  {recentOrders.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No orders yet</td></tr>}
+                  {recentOrders.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No {orderLabel.toLowerCase()} yet</td></tr>}
                 </tbody>
               </table>
             )}
@@ -91,7 +96,7 @@ export function DashboardPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card">
           <div className="p-5 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Top Products</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">Top {productLabel}</h2>
           </div>
           <div className="p-5 space-y-4">
             {loadingTop ? <Skeleton className="h-40 w-full" /> : topProds.length > 0 ? topProds.map((item: any, i: number) => (

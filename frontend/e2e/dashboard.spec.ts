@@ -3,6 +3,14 @@ import { test, expect } from '@playwright/test';
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     // Login first
+    await page.route('**/api/settings', async (route) => {
+      const response = await route.fetch();
+      const json = await response.json();
+      if (json.data) {
+        json.data = json.data.map((s: any) => s.key === 'businessType' ? { ...s, value: 'RESTAURANT' } : s);
+      }
+      await route.fulfill({ json });
+    });
     await page.goto('/login');
     await page.getByRole('textbox').first().fill('admin@mypos.com');
     await page.getByRole('textbox').nth(1).fill('admin123');

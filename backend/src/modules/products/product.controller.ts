@@ -18,6 +18,7 @@ const productSchema = z.object({
   unit: z.string().optional(),
   taxRate: z.number().optional(),
   categoryId: z.string().optional(),
+  businessType: z.string().optional(),
   modifiers: z.any().optional(),
   variants: z.any().optional(),
 });
@@ -25,10 +26,11 @@ const productSchema = z.object({
 export class ProductController {
   getAll = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { page = '1', limit = '50', search, categoryId, isActive } = req.query;
+      const { page = '1', limit = '50', search, categoryId, isActive, businessType } = req.query;
       const skip = (Number(page) - 1) * Number(limit);
 
       const where: any = { branchId: req.user!.branchId };
+      if (businessType) where.businessType = String(businessType);
       if (search) {
         where.OR = [
           { name: { contains: String(search) } },
@@ -89,6 +91,11 @@ export class ProductController {
   create = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const data = productSchema.parse(req.body);
+      // Auto-set businessType from settings if not provided
+      if (!data.businessType) {
+        const setting = await prisma.setting.findFirst({ where: { key: 'businessType', branchId: req.user!.branchId } });
+        if (setting) data.businessType = setting.value;
+      }
       const product = await prisma.product.create({
         data: { ...data, branchId: req.user!.branchId },
       });

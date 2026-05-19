@@ -143,3 +143,34 @@ const businessConfigs: Record<BusinessType, BusinessConfig> = {
 export function getBusinessConfig(type?: BusinessType): BusinessConfig {
   return businessConfigs[type || useSettingsStore.getState().businessType] || businessConfigs.GENERAL;
 }
+
+/** Get the display label for a route path based on current business type */
+export function getPageLabel(routePath: string, type?: BusinessType): string {
+  const config = getBusinessConfig(type);
+  return config.renamedLabels[routePath] || '';
+}
+
+/** Common label maps for pages to use */
+const pageDefaults: Record<string, { title: string; subtitle: string }> = {
+  '/products': { title: 'Products', subtitle: 'Manage your product catalog' },
+  '/orders': { title: 'Orders', subtitle: 'Manage and track all orders' },
+  '/tables': { title: 'Tables', subtitle: 'Manage table assignments and status' },
+};
+
+export function getPageTitle(routePath: string, type?: BusinessType): { title: string; subtitle: string } {
+  const config = getBusinessConfig(type);
+  const defaults = pageDefaults[routePath] || { title: '', subtitle: '' };
+  const label = config.renamedLabels[routePath];
+  if (!label) return defaults;
+  const subtitleMap: Record<string, string> = {
+    'Services': 'Manage your services and pricing',
+    'Appointments': 'Manage and track all appointments',
+    'Stations': 'Manage station assignments and status',
+    'Medications': 'Manage your medication inventory',
+    'Items': 'Manage your item catalog',
+    'Merchandise': 'Manage your merchandise catalog',
+    'Transactions': 'Manage and track all transactions',
+    'Seating': 'Manage seating assignments and status',
+  };
+  return { title: label, subtitle: subtitleMap[label] || defaults.subtitle };
+}

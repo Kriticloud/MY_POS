@@ -6,8 +6,11 @@ import { AppError } from '../../middleware/errorHandler';
 export class CategoryController {
   getAll = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+      const { businessType } = req.query;
+      const where: any = { branchId: req.user!.branchId, isActive: true };
+      if (businessType) where.businessType = String(businessType);
       const categories = await prisma.category.findMany({
-        where: { branchId: req.user!.branchId, isActive: true },
+        where,
         include: { _count: { select: { products: true } } },
         orderBy: { sortOrder: 'asc' },
       });
@@ -32,8 +35,13 @@ export class CategoryController {
 
   create = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+      const body = { ...req.body };
+      if (!body.businessType) {
+        const setting = await prisma.setting.findFirst({ where: { key: 'businessType', branchId: req.user!.branchId } });
+        if (setting) body.businessType = setting.value;
+      }
       const category = await prisma.category.create({
-        data: { ...req.body, branchId: req.user!.branchId },
+        data: { ...body, branchId: req.user!.branchId },
       });
       res.status(201).json({ success: true, data: category });
     } catch (error) {

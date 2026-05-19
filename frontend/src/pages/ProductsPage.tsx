@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Edit, Trash2, Package, X } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 import { useProducts, useCategories, useCreateProduct, useUpdateProduct, useDeleteProduct } from '../hooks/useApi';
+import { useSettingsStore, getPageTitle, getBusinessConfig } from '../store/settingsStore';
 import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 
-const emptyForm = { name: '', slug: '', price: '', costPrice: '', sku: '', barcode: '', description: '', categoryId: '', taxRate: '8.5', unit: 'piece' };
+const emptyForm = { name: '', slug: '', price: '', costPrice: '', sku: '', barcode: '', description: '', categoryId: '', taxRate: '8.5', unit: 'piece', duration: '' };
 
 export function ProductsPage() {
   const [search, setSearch] = useState('');
@@ -20,16 +21,20 @@ export function ProductsPage() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const businessType = useSettingsStore((s) => s.businessType);
+  const config = getBusinessConfig(businessType);
+  const pageInfo = getPageTitle('/products', businessType);
+  const isSalon = businessType === 'SALON';
 
   const openNew = () => { setForm(emptyForm); setEditing(null); setShowForm(true); };
   const openEdit = (p: any) => {
-    setForm({ name: p.name, slug: p.slug, price: String(p.price), costPrice: String(p.costPrice || ''), sku: p.sku || '', barcode: p.barcode || '', description: p.description || '', categoryId: p.categoryId || '', taxRate: String(p.taxRate || 8.5), unit: p.unit || 'piece' });
+    setForm({ name: p.name, slug: p.slug, price: String(p.price), costPrice: String(p.costPrice || ''), sku: p.sku || '', barcode: p.barcode || '', description: p.description || '', categoryId: p.categoryId || '', taxRate: String(p.taxRate || 8.5), unit: p.unit || 'piece', duration: String(p.duration || '') });
     setEditing(p); setShowForm(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { ...form, price: parseFloat(form.price), costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined, taxRate: parseFloat(form.taxRate), slug: form.slug || form.name.toLowerCase().replace(/\s+/g, '-') };
+    const data = { ...form, price: parseFloat(form.price), costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined, taxRate: parseFloat(form.taxRate), slug: form.slug || form.name.toLowerCase().replace(/\s+/g, '-'), businessType, duration: form.duration ? parseInt(form.duration) : undefined };
     try {
       if (editing) { await updateProduct.mutateAsync({ id: editing.id, ...data }); toast.success('Product updated'); }
       else { await createProduct.mutateAsync(data); toast.success('Product created'); }
@@ -47,11 +52,11 @@ export function ProductsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Products</h1>
-          <p className="text-gray-500 mt-1">Manage your product catalog</p>
+          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1>
+          <p className="text-gray-500 mt-1">{pageInfo.subtitle}</p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium">
-          <Plus className="w-4 h-4" /> Add Product
+          <Plus className="w-4 h-4" /> Add {isSalon ? 'Service' : 'Product'}
         </button>
       </div>
 
@@ -94,7 +99,7 @@ export function ProductsPage() {
                     </td>
                   </tr>
                 ))}
-                {(products || []).length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No products found</td></tr>}
+                {(products || []).length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No {isSalon ? 'services' : 'products'} found</td></tr>}
               </tbody>
             </table>
           </div>
@@ -108,7 +113,7 @@ export function ProductsPage() {
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} onClick={e => e.stopPropagation()}
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg mx-4 shadow-xl max-h-[85vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">{editing ? 'Edit Product' : 'New Product'}</h2>
+                <h2 className="text-lg font-bold">{editing ? `Edit ${isSalon ? 'Service' : 'Product'}` : `New ${isSalon ? 'Service' : 'Product'}`}</h2>
                 <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-3">
@@ -132,10 +137,14 @@ export function ProductsPage() {
                     <input type="number" step="0.1" value={form.taxRate} onChange={e => setForm({...form, taxRate: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
                   <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
                     <textarea rows={2} value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
+                  {isSalon && (
+                    <div><label className="block text-xs font-medium text-gray-500 mb-1">Duration (minutes)</label>
+                      <input type="number" min="1" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} placeholder="e.g. 30" className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
+                  )}
                 </div>
                 <button type="submit" disabled={createProduct.isPending || updateProduct.isPending}
                   className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">
-                  {editing ? 'Update Product' : 'Create Product'}
+                  {editing ? `Update ${isSalon ? 'Service' : 'Product'}` : `Create ${isSalon ? 'Service' : 'Product'}`}
                 </button>
               </form>
             </motion.div>
@@ -148,7 +157,7 @@ export function ProductsPage() {
         {deleteId && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm mx-4 shadow-xl">
-              <h2 className="text-lg font-bold mb-2">Delete Product?</h2>
+              <h2 className="text-lg font-bold mb-2">Delete {isSalon ? 'Service' : 'Product'}?</h2>
               <p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleteId(null)} className="flex-1 py-2 rounded-xl border text-sm">Cancel</button>

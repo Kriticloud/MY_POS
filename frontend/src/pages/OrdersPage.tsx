@@ -5,6 +5,7 @@ import { useOrders, useUpdateOrderStatus } from '../hooks/useApi';
 import { Search, Filter, Eye, X, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
+import { useSettingsStore, getPageTitle } from '../store/settingsStore';
 
 const statusOptions = ['ALL', 'PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED'];
 const statusColor: Record<string, string> = {
@@ -21,6 +22,8 @@ export function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const businessType = useSettingsStore((s) => s.businessType);
+  const pageInfo = getPageTitle('/orders', businessType);
   const { data: orders, isLoading } = useOrders(statusFilter !== 'ALL' ? { status: statusFilter } : undefined);
   const updateStatus = useUpdateOrderStatus();
 
@@ -44,8 +47,8 @@ export function OrdersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Orders</h1>
-          <p className="text-gray-500 mt-1">Manage and track all orders</p>
+          <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1>
+          <p className="text-gray-500 mt-1">{pageInfo.subtitle}</p>
         </div>
       </div>
 

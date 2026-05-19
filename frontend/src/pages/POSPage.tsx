@@ -30,18 +30,21 @@ export function POSPage() {
   const [loyaltyRedeem, setLoyaltyRedeem] = useState(0);
 
   const barcodeRef = useRef<HTMLInputElement>(null);
-  const { data: apiProducts } = useProducts();
-  const { data: apiCategories } = useCategories();
-  const { data: customers } = useCustomers({ search: customerSearch || undefined });
   const businessType = useSettingsStore((s) => s.businessType);
+  const { data: apiProducts } = useProducts({ businessType });
+  const { data: apiCategories } = useCategories({ businessType });
+  const { data: customers } = useCustomers({ search: customerSearch || undefined });
   const orderTypes = getBusinessConfig(businessType).orderTypes;
   const createOrder = useCreateOrder();
   const user = useAuthStore(s => s.user);
 
+  const config = getBusinessConfig(businessType);
+  const isSalon = businessType === 'SALON';
+
   const allCategories = useMemo(() => {
     const cats = (apiCategories || []).map((c: any) => ({ id: c.id, name: c.name, icon: c.icon || '📦' }));
-    return [{ id: 'all', name: 'All', icon: '🍽️' }, ...cats];
-  }, [apiCategories]);
+    return [{ id: 'all', name: 'All', icon: config.icon || '🍽️' }, ...cats];
+  }, [apiCategories, config.icon]);
 
   const products = useMemo(() => {
     let list = apiProducts || [];
@@ -139,7 +142,7 @@ export function POSPage() {
         paymentMethod: payments.length > 1 ? 'SPLIT' : payments[0].method,
         payments: payments.length > 1 ? payments : undefined,
         cashierName: user ? `${user.firstName} ${user.lastName}` : 'Staff',
-        businessName: 'MyPOS Restaurant',
+        businessName: isSalon ? 'MyPOS Salon & Spa' : 'MyPOS Restaurant',
         loyaltyPointsEarned: Math.floor(finalTotal),
         customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName || ''}` : undefined,
       };
@@ -164,7 +167,7 @@ export function POSPage() {
         <div className="flex items-center gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)}
+            <input type="text" placeholder={isSalon ? 'Search services...' : 'Search products...'} value={search} onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
           </div>
           <button onClick={() => { setShowBarcode(!showBarcode); setTimeout(() => barcodeRef.current?.focus(), 100); }}
@@ -205,11 +208,15 @@ export function POSPage() {
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{product.name}</p>
               <div className="flex items-center justify-between mt-1">
                 <p className="text-sm font-bold text-blue-600">{formatCurrency(product.price)}</p>
-                {product.stockQuantity !== undefined && <p className="text-xs text-gray-400">{product.stockQuantity} left</p>}
+                {product.duration ? (
+                  <p className="text-xs text-gray-400">{product.duration} min</p>
+                ) : product.stockQuantity !== undefined ? (
+                  <p className="text-xs text-gray-400">{product.stockQuantity} left</p>
+                ) : null}
               </div>
             </motion.button>
           ))}
-          {products.length === 0 && <div className="col-span-full text-center py-12 text-gray-400">No products found</div>}
+          {products.length === 0 && <div className="col-span-full text-center py-12 text-gray-400">{isSalon ? 'No services found' : 'No products found'}</div>}
         </div>
       </div>
 
