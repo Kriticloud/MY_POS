@@ -2,12 +2,12 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../store/cartStore';
 import { formatCurrency } from '../utils/helpers';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, ShoppingBag, X, Percent, ScanBarcode, User, Wallet, Send, Download, Star } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, ShoppingBag, X, Percent, ScanBarcode, User, Wallet, Star, Printer, Receipt, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useProducts, useCategories, useCreateOrder, useCustomers, useProductByBarcode } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
-import { printReceipt, downloadReceipt } from '../services/receipt';
+import { printReceipt } from '../services/receipt';
 
 interface SplitPayment { method: string; amount: number; }
 
@@ -21,8 +21,7 @@ export function POSPage() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [showCustomerSelect, setShowCustomerSelect] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
-  const [showReceiptOptions, setShowReceiptOptions] = useState(false);
-  const [receiptEmail, setReceiptEmail] = useState('');
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [lastOrderData, setLastOrderData] = useState<any>(null);
 
   // Split payment state
@@ -148,11 +147,9 @@ export function POSPage() {
         customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName || ''}` : undefined,
       };
       setLastOrderData(receiptData);
-      printReceipt(receiptData);
       cart.clearCart();
       setShowPayment(false);
-      setShowReceiptOptions(true);
-      toast.success('Order placed successfully!');
+      setShowReceiptPreview(true);
     } catch { toast.error('Failed to place order'); }
   };
 
@@ -399,29 +396,89 @@ export function POSPage() {
         )}
       </AnimatePresence>
 
-      {/* Digital Receipt Modal */}
+      {/* Receipt Preview Modal */}
       <AnimatePresence>
-        {showReceiptOptions && lastOrderData && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl">
-              <h3 className="text-lg font-bold mb-4 text-center">✅ Order Complete!</h3>
-              <p className="text-center text-2xl font-bold text-green-600 mb-4">{lastOrderData.orderNumber}</p>
-              <div className="space-y-3">
-                <button onClick={() => { printReceipt(lastOrderData); }} className="w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 flex items-center justify-center gap-2">
-                  🖨️ Print Again
-                </button>
-                <button onClick={() => { downloadReceipt(lastOrderData); toast.success('Receipt downloaded'); }} className="w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 flex items-center justify-center gap-2">
-                  <Download className="w-4 h-4" /> Download Receipt
-                </button>
-                <div className="flex gap-2">
-                  <input type="email" placeholder="Email receipt to..." value={receiptEmail} onChange={e => setReceiptEmail(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border text-sm" />
-                  <button onClick={() => { if (receiptEmail) { toast.success(`Receipt sent to ${receiptEmail}`); setReceiptEmail(''); } }}
-                    className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"><Send className="w-4 h-4" /></button>
+        {showReceiptPreview && lastOrderData && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+            <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[92vh] overflow-hidden">
+              {/* Success Header */}
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-5 text-center text-white">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}>
+                  <CheckCircle2 className="w-12 h-12 mx-auto mb-2" />
+                </motion.div>
+                <h3 className="text-lg font-bold">Payment Successful!</h3>
+                <p className="text-green-100 text-sm mt-1">Order has been placed</p>
+              </div>
+
+              {/* Receipt Body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5">
+                {/* Receipt Card */}
+                <div className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-5 bg-gray-50/50 dark:bg-gray-900/30">
+                  {/* Business Header */}
+                  <div className="text-center mb-4">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <Receipt className="w-5 h-5 text-gray-400" />
+                      <h4 className="font-bold text-gray-900 dark:text-white text-lg">{lastOrderData.businessName}</h4>
+                    </div>
+                    <p className="text-xs text-gray-400 font-mono">{lastOrderData.orderNumber}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{new Date(lastOrderData.date).toLocaleString()}</p>
+                  </div>
+
+                  <div className="border-t border-dashed border-gray-300 dark:border-gray-600 my-3" />
+
+                  {/* Items */}
+                  <div className="space-y-2">
+                    {lastOrderData.items.map((item: any, i: number) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-gray-800 dark:text-gray-200">{item.name}</span>
+                          <span className="text-gray-400 ml-1">×{item.quantity}</span>
+                        </div>
+                        <span className="font-medium text-gray-900 dark:text-white ml-3">{formatCurrency(item.totalPrice)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-dashed border-gray-300 dark:border-gray-600 my-3" />
+
+                  {/* Totals */}
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{formatCurrency(lastOrderData.subtotal)}</span></div>
+                    <div className="flex justify-between text-gray-500"><span>Tax</span><span>{formatCurrency(lastOrderData.tax)}</span></div>
+                    {lastOrderData.discount > 0 && (
+                      <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatCurrency(lastOrderData.discount)}</span></div>
+                    )}
+                    <div className="border-t border-gray-300 dark:border-gray-600 pt-2 mt-2 flex justify-between text-lg font-bold text-gray-900 dark:text-white">
+                      <span>Total</span><span>{formatCurrency(lastOrderData.total)}</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-dashed border-gray-300 dark:border-gray-600 my-3" />
+
+                  {/* Payment & Cashier Info */}
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Payment: {lastOrderData.paymentMethod?.replace('_', ' ')}</span>
+                    <span>Cashier: {lastOrderData.cashierName}</span>
+                  </div>
+                  {lastOrderData.customerName && (
+                    <p className="text-xs text-gray-400 mt-1">Customer: {lastOrderData.customerName}</p>
+                  )}
+
+                  {/* Footer */}
+                  <p className="text-center text-xs text-gray-400 mt-4">Thank you for your visit! 🙏</p>
                 </div>
-                <button onClick={() => setShowReceiptOptions(false)} className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
-                  New Order
+              </div>
+
+              {/* Action Buttons */}
+              <div className="px-6 pb-5 pt-2 flex gap-3">
+                <button onClick={() => { setShowReceiptPreview(false); setLastOrderData(null); }}
+                  className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-all text-sm">
+                  Skip
+                </button>
+                <button onClick={() => { printReceipt(lastOrderData); setShowReceiptPreview(false); setLastOrderData(null); }}
+                  className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all text-sm flex items-center justify-center gap-2">
+                  <Printer className="w-4 h-4" /> Print Receipt
                 </button>
               </div>
             </motion.div>
