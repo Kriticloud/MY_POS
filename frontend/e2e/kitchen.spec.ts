@@ -1,4 +1,21 @@
 import { test, expect } from '@playwright/test';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const authFile = path.join(__dirname, '.auth', 'user.json');
+
+function getTokenFromFile(): string | null {
+  try {
+    const authState = JSON.parse(fs.readFileSync(authFile, 'utf-8'));
+    const entry = authState.origins?.[0]?.localStorage?.find((s: any) => s.name === 'auth-storage');
+    return entry ? JSON.parse(entry.value)?.state?.accessToken : null;
+  } catch {
+    return null;
+  }
+}
 
 test.describe('Kitchen Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -10,7 +27,32 @@ test.describe('Kitchen Page', () => {
       }
       await route.fulfill({ json });
     });
+
+    // Ensure active orders exist BEFORE navigating to kitchen
+    const token = getTokenFromFile();
+    if (token) {
+      const queueResp = await page.request.get('http://localhost:4000/api/orders/kitchen/queue', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const queueJson = await queueResp.json();
+      if (!queueJson.data?.length) {
+        // No active orders - reset up to 3 orders to CONFIRMED
+        const ordersResp = await page.request.get('http://localhost:4000/api/orders?limit=50', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const ordersJson = await ordersResp.json();
+        const targets = (ordersJson.data || []).filter((o: any) => o.status !== 'CANCELLED').slice(0, 3);
+        for (const target of targets) {
+          await page.request.put(`http://localhost:4000/api/orders/${target.id}/status`, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            data: { status: 'CONFIRMED' },
+          });
+        }
+      }
+    }
+
     await page.goto('/kitchen');
+    await page.waitForLoadState('networkidle');
   });
 
   test.afterEach(async ({ page }) => {
