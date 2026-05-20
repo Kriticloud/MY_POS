@@ -78,14 +78,16 @@ test.describe('Orders Page', () => {
   test.describe('Search', () => {
     test('should filter orders by customer name', async ({ page }) => {
       await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 10000 });
       await page.getByPlaceholder(/Search orders/i).fill('John');
-      await expect(page.getByText('John Doe').first()).toBeVisible();
+      await expect(page.getByText('John Doe').first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should clear search and show all orders', async ({ page }) => {
       await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 10000 });
       await page.getByPlaceholder(/Search orders/i).fill('John');
-      await expect(page.getByText('John Doe').first()).toBeVisible();
+      await expect(page.getByText('John Doe').first()).toBeVisible({ timeout: 10000 });
       await page.getByPlaceholder(/Search orders/i).clear();
       // All orders should be visible again
       await expect(page.getByText(/^ORD-/).first()).toBeVisible();
