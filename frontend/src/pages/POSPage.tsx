@@ -8,6 +8,7 @@ import { useProducts, useCategories, useCreateOrder, useCustomers, useProductByB
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
 import { printReceipt } from '../services/receipt';
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 
 interface SplitPayment { method: string; amount: number; }
 interface HeldOrder { id: string; items: any[]; customerId: string | null; orderType: string; discount: number; notes: string; heldAt: Date; label: string; }
