@@ -29,6 +29,7 @@ const BranchesPage = lazy(() => import('./pages/BranchesPage').then(m => ({ defa
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage').then(m => ({ default: m.AuditLogPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const GiftCardsPage = lazy(() => import('./pages/GiftCardsPage').then(m => ({ default: m.GiftCardsPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 function PageLoader() {
   return (
@@ -87,7 +88,9 @@ export default function App() {
             <Route path="audit-log" element={<ErrorBoundary><AuditLogPage /></ErrorBoundary>} />
             <Route path="profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
             <Route path="gift-cards" element={<ErrorBoundary><GiftCardsPage /></ErrorBoundary>} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

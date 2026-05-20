@@ -3,6 +3,33 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../middleware/errorHandler';
 
+// Account lockout tracking
+const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+
+function checkLockout(email: string) {
+  const record = loginAttempts.get(email);
+  if (record && record.lockedUntil > Date.now()) {
+    const minutesLeft = Math.ceil((record.lockedUntil - Date.now()) / 60000);
+    throw new AppError(`Account locked. Try again in ${minutesLeft} minutes.`, 429);
+  }
+}
+
+function recordFailedAttempt(email: string) {
+  const record = loginAttempts.get(email) || { count: 0, lockedUntil: 0 };
+  record.count++;
+  if (record.count >= MAX_ATTEMPTS) {
+    record.lockedUntil = Date.now() + LOCKOUT_DURATION;
+    record.count = 0;
+  }
+  loginAttempts.set(email, record);
+}
+
+function clearAttempts(email: string) {
+  loginAttempts.delete(email);
+}
+
 export class AuthService {
   async register(data: {
     email: string;
@@ -42,6 +69,8 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
+    checkLockout(email);
+
     // Dev mode fallback when database is unavailable
     if (process.env.NODE_ENV === 'development') {
       const devUsers: Record<string, { password: string; id: string; firstName: string; lastName: string; role: string }> = {
@@ -84,14 +113,17 @@ export class AuthService {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.isActive) {
+      recordFailedAttempt(email);
       throw new AppError('Invalid credentials', 401);
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
+      recordFailedAttempt(email);
       throw new AppError('Invalid credentials', 401);
     }
 
+    clearAttempts(email);
     const tokens = this.generateTokens(user.id, user.email, user.role);
     await prisma.user.update({
       where: { id: user.id },

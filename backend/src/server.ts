@@ -3,6 +3,9 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { setIO } from './lib/socket';
 import logger from './lib/logger';
+import { validateEnv } from './lib/validateEnv';
+
+validateEnv();
 
 const PORT = process.env.PORT || 4001;
 

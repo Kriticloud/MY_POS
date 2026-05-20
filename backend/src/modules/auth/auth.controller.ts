@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { AppError } from '../../middleware/errorHandler';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../lib/prisma';
+import { sendEmail, passwordResetEmail } from '../email/email.service';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -120,8 +121,8 @@ export class AuthController {
       const tempPass = Math.random().toString(36).slice(-8);
       const hashed = await bcrypt.hash(tempPass, 10);
       await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
-      // In production, send email. For now, log it.
-      console.log(`Password reset for ${email}: temporary password = ${tempPass}`);
+      // Send email notification
+      sendEmail({ to: email, subject: 'Password Reset - MyPOS', html: passwordResetEmail(tempPass) }).catch(() => {});
       res.json({ success: true, message: 'If the email exists, a reset link has been sent', tempPassword: process.env.NODE_ENV === 'development' ? tempPass : undefined });
     } catch (error) { next(error); }
   };
