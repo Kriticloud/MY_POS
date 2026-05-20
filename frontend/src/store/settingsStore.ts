@@ -68,10 +68,30 @@ const localeMap: Record<string, string> = {
 };
 
 // Exchange rates relative to USD (base currency in DB)
-const exchangeRates: Record<string, number> = {
+// Starts with fallback rates, updated from live API on load
+let exchangeRates: Record<string, number> = {
   USD: 1, EUR: 0.92, GBP: 0.79, INR: 83.5, AED: 3.67, SAR: 3.75,
   JPY: 154.5, CNY: 7.24, AUD: 1.53, CAD: 1.36, BRL: 4.97, MXN: 17.2,
 };
+let ratesFetched = false;
+
+// Fetch live rates from backend (which caches for 1 hour)
+export async function fetchLiveRates() {
+  if (ratesFetched) return;
+  try {
+    const res = await fetch('http://localhost:4000/api/exchange-rates');
+    const data = await res.json();
+    if (data.rates) {
+      exchangeRates = data.rates;
+      ratesFetched = true;
+    }
+  } catch {
+    // Keep fallback rates
+  }
+}
+
+// Kick off fetch immediately on module load
+fetchLiveRates();
 
 // All amounts in DB are stored in USD. This converts + formats to the selected currency.
 export function formatCurrency(amount: number, currencyOverride?: string): string {

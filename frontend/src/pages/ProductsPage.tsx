@@ -6,6 +6,7 @@ import { useProducts, useCategories, useCreateProduct, useUpdateProduct, useDele
 import { useSettingsStore, getPageTitle, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
 import { Skeleton } from '../components/ui/Skeleton';
 import { printBarcodeLabel } from '../services/escpos';
+import { validate, validateRequired, validatePrice } from '../utils/validation';
 import toast from 'react-hot-toast';
 
 const emptyForm = { name: '', slug: '', price: '', costPrice: '', sku: '', barcode: '', description: '', categoryId: '', taxRate: '8.5', unit: 'piece', duration: '', image: '', modifiers: '', variants: '' };
@@ -36,6 +37,11 @@ export function ProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate([
+      validateRequired(form.name, 'name', 'Product name'),
+      validatePrice(form.price),
+      validateRequired(form.categoryId, 'categoryId', 'Category'),
+    ])) return;
     let modifiers, variants;
     try { modifiers = form.modifiers ? JSON.parse(form.modifiers) : undefined; } catch { toast.error('Invalid modifiers JSON'); return; }
     try { variants = form.variants ? JSON.parse(form.variants) : undefined; } catch { toast.error('Invalid variants JSON'); return; }

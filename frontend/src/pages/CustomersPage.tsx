@@ -5,6 +5,7 @@ import { formatCurrency } from '../utils/helpers';
 import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
+import { validate, validateRequired, validateEmail, validatePhone } from '../utils/validation';
 
 const tierColors: Record<string, string> = { BRONZE: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', SILVER: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', GOLD: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', PLATINUM: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' };
 const tierThresholds = [{ tier: 'PLATINUM', min: 5000 }, { tier: 'GOLD', min: 2000 }, { tier: 'SILVER', min: 500 }, { tier: 'BRONZE', min: 0 }];
@@ -36,6 +37,11 @@ export function CustomersPage() {
   const openEdit = (c: any) => { setForm({ firstName: c.firstName, lastName: c.lastName || '', email: c.email || '', phone: c.phone || '', address: c.address || '' }); setEditing(c); setShowModal(true); };
 
   const handleSave = async () => {
+    if (!validate([
+      validateRequired(form.firstName, 'firstName', 'First name'),
+      validateEmail(form.email),
+      validatePhone(form.phone),
+    ])) return;
     try {
       if (editing) { await updateCustomer.mutateAsync({ id: editing.id, ...form }); toast.success('Customer updated'); }
       else { await createCustomer.mutateAsync(form as any); toast.success('Customer created'); }
