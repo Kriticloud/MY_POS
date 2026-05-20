@@ -33,6 +33,7 @@ import { exchangeRateRouter } from './modules/exchange/exchange.routes';
 import { giftCardRouter } from './modules/giftcards/giftcard.routes';
 import uploadRouter from './modules/upload/upload.routes';
 import { paymentRouter } from './modules/payments/payment.routes';
+import { webhookRouter } from './modules/webhooks/webhook.routes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerDocument } from './lib/swagger';
 
@@ -106,7 +107,17 @@ app.use('/api/exchange-rates', exchangeRateRouter);
 app.use('/api/gift-cards', giftCardRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/payments', paymentRouter);
+app.use('/api/webhooks', webhookRouter);
 app.use('/api/settings', settingRouter);
+
+// API versioning: /api/v1/* mirrors /api/* for forward compatibility
+app.use('/api/v1', (_req, _res, next) => next('route'));
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/products', productRouter);
+app.use('/api/v1/orders', orderRouter);
+app.use('/api/v1/customers', customerRouter);
+app.use('/api/v1/reports', reportRouter);
+app.use('/api/v1/settings', settingRouter);
 
 // Error handling
 app.use(devFallback);

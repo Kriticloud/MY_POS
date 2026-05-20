@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import './styles/globals.css';
 import './utils/errorTracker'; // Initialize global error tracking
+import { initWebVitals } from './utils/webVitals';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,3 +59,6 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
 }
+
+// Initialize performance monitoring
+initWebVitals();
