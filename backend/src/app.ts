@@ -8,6 +8,7 @@ import path from 'path';
 
 import { errorHandler } from './middleware/errorHandler';
 import { devFallback, devRouter } from './middleware/devFallback';
+import { sanitizeInput } from './middleware/sanitize';
 import { authRouter } from './modules/auth/auth.routes';
 import { productRouter } from './modules/products/product.routes';
 import { categoryRouter } from './modules/categories/category.routes';
@@ -20,6 +21,9 @@ import { settingRouter } from './modules/settings/setting.routes';
 import { employeeRouter } from './modules/employees/employee.routes';
 import { auditLogRouter } from './modules/audit/audit.routes';
 import { discountRouter } from './modules/discounts/discount.routes';
+import { cashDrawerRouter } from './modules/cash-drawer/cashDrawer.routes';
+import { supplierRouter } from './modules/suppliers/supplier.routes';
+import { appointmentRouter } from './modules/appointments/appointment.routes';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -44,6 +48,9 @@ app.use('/api/auth', limiter);
 // Parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Input sanitization (XSS prevention)
+app.use(sanitizeInput);
 
 // Logging
 if (process.env.NODE_ENV !== 'test') {
@@ -70,6 +77,9 @@ app.use('/api/reports', reportRouter);
 app.use('/api/employees', employeeRouter);
 app.use('/api/audit-log', auditLogRouter);
 app.use('/api/discounts', discountRouter);
+app.use('/api/cash-drawer', cashDrawerRouter);
+app.use('/api/suppliers', supplierRouter);
+app.use('/api/appointments', appointmentRouter);
 app.use('/api/settings', settingRouter);
 
 // Error handling

@@ -338,3 +338,155 @@ export function useAuditLog(params?: { limit?: number }) {
     queryFn: async () => { const { data } = await api.get<ApiResponse<AuditLog[]>>('/audit-log', { params }); return data.data; },
   });
 }
+
+// Cash Drawer
+export function useCashDrawerCurrent() {
+  return useQuery({
+    queryKey: ['cash-drawer', 'current'],
+    queryFn: async () => { const { data } = await api.get('/cash-drawer/current'); return data.data; },
+    refetchInterval: 30000,
+  });
+}
+export function useCashDrawerSessions() {
+  return useQuery({
+    queryKey: ['cash-drawer', 'sessions'],
+    queryFn: async () => { const { data } = await api.get('/cash-drawer/sessions'); return data.data; },
+  });
+}
+export function useOpenDrawer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: { openingBalance: number; notes?: string }) => { const { data } = await api.post('/cash-drawer/open', d); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['cash-drawer'] }); },
+  });
+}
+export function useCloseDrawer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: { closingBalance: number; notes?: string }) => { const { data } = await api.post('/cash-drawer/close', d); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['cash-drawer'] }); },
+  });
+}
+export function useCashTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: { type: string; amount: number; reason?: string }) => { const { data } = await api.post('/cash-drawer/transaction', d); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['cash-drawer'] }); },
+  });
+}
+
+// Suppliers
+export function useSuppliers() {
+  return useQuery({
+    queryKey: ['suppliers'],
+    queryFn: async () => { const { data } = await api.get('/suppliers'); return data.data; },
+  });
+}
+export function useCreateSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: any) => { const { data } = await api.post('/suppliers', d); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['suppliers'] }); },
+  });
+}
+export function useUpdateSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: any) => { const { data } = await api.put(`/suppliers/${id}`, d); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['suppliers'] }); },
+  });
+}
+export function useDeleteSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => { await api.delete(`/suppliers/${id}`); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['suppliers'] }); },
+  });
+}
+export function usePurchaseOrders() {
+  return useQuery({
+    queryKey: ['purchase-orders'],
+    queryFn: async () => { const { data } = await api.get('/suppliers/purchase-orders'); return data.data; },
+  });
+}
+export function useCreatePurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: any) => { const { data } = await api.post('/suppliers/purchase-orders', d); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['purchase-orders'] }); queryClient.invalidateQueries({ queryKey: ['inventory'] }); },
+  });
+}
+export function useReceivePurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => { const { data } = await api.put(`/suppliers/purchase-orders/${id}/receive`); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['purchase-orders'] }); queryClient.invalidateQueries({ queryKey: ['inventory'] }); },
+  });
+}
+
+// Appointments
+export function useAppointments(params?: { date?: string; staffId?: string; status?: string }) {
+  return useQuery({
+    queryKey: ['appointments', params],
+    queryFn: async () => { const { data } = await api.get('/appointments', { params }); return data.data; },
+    refetchInterval: 30000,
+  });
+}
+export function useCreateAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: any) => { const { data } = await api.post('/appointments', d); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); },
+  });
+}
+export function useUpdateAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: any) => { const { data } = await api.put(`/appointments/${id}`, d); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); },
+  });
+}
+export function useUpdateAppointmentStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => { const { data } = await api.put(`/appointments/${id}/status`, { status }); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); },
+  });
+}
+
+// Table operations
+export function useTransferTable() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, targetTableId }: { id: string; targetTableId: string }) => { const { data } = await api.put(`/tables/${id}/transfer`, { targetTableId }); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tables'] }); },
+  });
+}
+export function useMergeTables() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, sourceTableId }: { id: string; sourceTableId: string }) => { const { data } = await api.put(`/tables/${id}/merge`, { sourceTableId }); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tables'] }); },
+  });
+}
+
+// Split bill
+export function useSplitBill() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, splits }: { id: string; splits: any[] }) => { const { data } = await api.post(`/orders/${id}/split`, { splits }); return data.data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['orders'] }); },
+  });
+}
+
+// Password
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (d: { currentPassword: string; newPassword: string }) => { const { data } = await api.post('/auth/change-password', d); return data.data; },
+  });
+}
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async (email: string) => { const { data } = await api.post('/auth/reset-password', { email }); return data.data; },
+  });
+}

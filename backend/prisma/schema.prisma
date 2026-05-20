@@ -48,6 +48,9 @@ model User {
   activityLogs  ActivityLog[]
   clockEntries  ClockEntry[]
   appointments  Appointment[]  @relation("StaffAppointments")
+  cashSessions  CashDrawerSession[]
+  cashTxns      CashTransaction[]
+  purchaseOrders PurchaseOrder[]
   @@map("users")
 }
 
@@ -97,6 +100,7 @@ model Product {
   branch      Branch?     @relation(fields: [branchId], references: [id])
   orderItems  OrderItem[]
   inventory   Inventory[]
+  purchaseItems PurchaseOrderItem[]
   @@index([barcode])
   @@index([sku])
   @@map("products")
@@ -260,6 +264,7 @@ model Supplier {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  purchaseOrders PurchaseOrder[]
   @@map("suppliers")
 }
 
@@ -323,4 +328,64 @@ model ClockEntry {
   user      User      @relation(fields: [userId], references: [id])
   @@index([userId, clockIn])
   @@map("clock_entries")
+}
+
+model CashDrawerSession {
+  id              String    @id @default(uuid())
+  userId          String
+  branchId        String?
+  openingBalance  Float     @default(0)
+  closingBalance  Float?
+  expectedBalance Float?
+  difference      Float?
+  notes           String?
+  openedAt        DateTime  @default(now())
+  closedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  user            User      @relation(fields: [userId], references: [id])
+  transactions    CashTransaction[]
+  @@map("cash_drawer_sessions")
+}
+
+model CashTransaction {
+  id        String   @id @default(uuid())
+  sessionId String
+  userId    String
+  type      String   // CASH_IN, CASH_OUT, PAID_IN, PAID_OUT
+  amount    Float
+  reason    String?
+  createdAt DateTime @default(now())
+  session   CashDrawerSession @relation(fields: [sessionId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  @@map("cash_transactions")
+}
+
+model PurchaseOrder {
+  id          String    @id @default(uuid())
+  orderNumber String    @unique
+  supplierId  String
+  userId      String
+  status      String    @default("PENDING")
+  totalAmount Float     @default(0)
+  notes       String?
+  receivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  supplier    Supplier  @relation(fields: [supplierId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+  items       PurchaseOrderItem[]
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String   @id @default(uuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitCost        Float
+  totalCost       Float
+  createdAt       DateTime @default(now())
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id])
+  @@map("purchase_order_items")
 }

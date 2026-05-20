@@ -483,4 +483,69 @@ export class OrderController {
       next(error);
     }
   };
+
+  // Split bill: create separate orders from selected items
+  splitBill = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { splits } = req.body;
+      // splits: Array of { itemIds: string[], paymentMethod: string }
+      const order = await prisma.order.findUnique({
+        where: { id: req.params.id },
+        include: { items: true },
+      });
+      if (!order) throw new AppError('Order not found', 404);
+
+      const newOrders = [];
+      for (const split of splits) {
+        const items = order.items.filter(i => split.itemIds.includes(i.id));
+        if (!items.length) continue;
+        const subtotal = items.reduce((s, i) => s + i.totalPrice, 0);
+        const taxRate = order.taxAmount / (order.subtotal || 1);
+        const taxAmount = subtotal * taxRate;
+        const totalAmount = subtotal + taxAmount;
+
+        const newOrder = await prisma.order.create({
+          data: {
+            orderNumber: `${order.orderNumber}-S${newOrders.length + 1}`,
+            status: 'COMPLETED',
+            orderType: order.orderType,
+            subtotal,
+            taxAmount,
+            totalAmount,
+            userId: req.user!.id,
+            branchId: order.branchId,
+            tableId: order.tableId,
+            customerId: order.customerId,
+            items: {
+              create: items.map(i => ({
+                productId: i.productId,
+                quantity: i.quantity,
+                unitPrice: i.unitPrice,
+                totalPrice: i.totalPrice,
+                discount: i.discount,
+                notes: i.notes,
+              })),
+            },
+            payments: {
+              create: [{
+                method: split.paymentMethod || 'CASH',
+                amount: totalAmount,
+                status: 'COMPLETED',
+              }],
+            },
+          },
+          include: { items: true, payments: true },
+        });
+        newOrders.push(newOrder);
+      }
+
+      // Mark original order as completed
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: 'COMPLETED', notes: `Split into ${newOrders.length} orders` },
+      });
+
+      res.json({ success: true, data: newOrders });
+    } catch (error) { next(error); }
+  };
 }

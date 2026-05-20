@@ -14,5 +14,6 @@ router.put('/:id/status', controller.updateStatus);
 router.put('/:id/void', controller.voidOrder);
 router.put('/:id/refund', controller.refundOrder);
 router.put('/:id/discount', controller.applyDiscount);
+router.post('/:id/split', controller.splitBill);
 
 export { router as orderRouter };
