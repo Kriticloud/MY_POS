@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Navigation', () => {
+  // Navigation tests run after many other tests; server may be under load
+  test.slow();
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/settings', async (route) => {
       const response = await route.fetch();
@@ -13,7 +15,10 @@ test.describe('Navigation', () => {
     await page.goto('/login');
     await page.getByPlaceholder('admin@mypos.com').fill('admin@mypos.com');
     await page.getByPlaceholder('••••••••').fill('admin123');
-    await page.getByRole('button', { name: 'Sign In' }).click();
+    await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/auth/login')),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
   });
 
