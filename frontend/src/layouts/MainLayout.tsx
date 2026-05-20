@@ -19,23 +19,32 @@ import {
   Warehouse,
   Search,
   Command,
+  CalendarDays,
+  Truck,
+  DollarSign,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { NotificationCenter } from '../components/NotificationCenter';
 import { CommandPalette } from '../components/CommandPalette';
+import { useThemeStore } from '../store/themeStore';
 
 const allNavItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/pos', icon: ShoppingCart, label: 'POS' },
-  { to: '/orders', icon: ClipboardList, label: 'Orders' },
-  { to: '/tables', icon: UtensilsCrossed, label: 'Tables' },
-  { to: '/kitchen', icon: ChefHat, label: 'Kitchen' },
-  { to: '/products', icon: Package, label: 'Products' },
-  { to: '/customers', icon: Users, label: 'Customers' },
-  { to: '/reports', icon: BarChart3, label: 'Reports' },
-  { to: '/employees', icon: UserCog, label: 'Employees' },
-  { to: '/inventory', icon: Warehouse, label: 'Inventory' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: [] },
+  { to: '/pos', icon: ShoppingCart, label: 'POS', roles: [] },
+  { to: '/orders', icon: ClipboardList, label: 'Orders', roles: [] },
+  { to: '/tables', icon: UtensilsCrossed, label: 'Tables', roles: [] },
+  { to: '/kitchen', icon: ChefHat, label: 'Kitchen', roles: [] },
+  { to: '/products', icon: Package, label: 'Products', roles: [] },
+  { to: '/customers', icon: Users, label: 'Customers', roles: [] },
+  { to: '/appointments', icon: CalendarDays, label: 'Appointments', roles: [] },
+  { to: '/reports', icon: BarChart3, label: 'Reports', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'] },
+  { to: '/employees', icon: UserCog, label: 'Employees', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+  { to: '/inventory', icon: Warehouse, label: 'Inventory', roles: [] },
+  { to: '/suppliers', icon: Truck, label: 'Suppliers', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+  { to: '/cash-drawer', icon: DollarSign, label: 'Cash Drawer', roles: [] },
+  { to: '/settings', icon: Settings, label: 'Settings', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
 ];
 
 export function MainLayout() {
@@ -43,19 +52,22 @@ export function MainLayout() {
   const businessType = useSettingsStore((s) => s.businessType);
   const businessName = useSettingsStore((s) => s.businessName);
   const currency = useSettingsStore((s) => s.currency);
+  const { theme, setTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = useMemo(() => {
     const config = getBusinessConfig(businessType);
+    const userRole = user?.role || 'STAFF';
     return allNavItems
       .filter((item) => !config.hiddenRoutes.includes(item.to))
+      .filter((item) => item.roles.length === 0 || item.roles.includes(userRole))
       .map((item) => ({
         ...item,
         label: config.renamedLabels[item.to] || item.label,
       }));
-  }, [businessType]);
+  }, [businessType, user?.role]);
 
   const handleLogout = () => {
     logout();
@@ -167,6 +179,15 @@ export function MainLayout() {
           </button>
 
           <div className="flex-1" />
+
+          {/* Dark mode toggle */}
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800 text-gray-500"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
 
           {/* Notification Center */}
           <NotificationCenter />

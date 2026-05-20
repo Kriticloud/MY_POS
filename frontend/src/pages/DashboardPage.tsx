@@ -8,6 +8,8 @@ import { useSettingsStore, getBusinessConfig, getEntityLabels } from '../store/s
 import { LiveClock } from '../components/LiveClock';
 import { QuickActions } from '../components/QuickActions';
 import { ActivityFeed } from '../components/ActivityFeed';
+import { SimpleBarChart, SimpleDonutChart } from '../components/Charts';
+import { useMemo } from 'react';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -21,6 +23,26 @@ export function DashboardPage() {
 
   const recentOrders = (ordersData || []).slice(0, 8);
   const topProds = (topProducts || []).slice(0, 5);
+
+  // Chart data
+  const ordersByDay = useMemo(() => {
+    const days: Record<string, number> = {};
+    (ordersData || []).forEach((o: any) => {
+      const day = new Date(o.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
+      days[day] = (days[day] || 0) + o.totalAmount;
+    });
+    const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return dayOrder.map(d => ({ label: d, value: days[d] || 0, color: '#3B82F6' }));
+  }, [ordersData]);
+
+  const paymentBreakdown = useMemo(() => {
+    const methods: Record<string, number> = {};
+    (ordersData || []).forEach((o: any) => {
+      (o.payments || []).forEach((p: any) => { methods[p.method] = (methods[p.method] || 0) + p.amount; });
+    });
+    const colors: Record<string, string> = { CASH: '#10B981', CARD: '#3B82F6', UPI: '#8B5CF6', WALLET: '#F59E0B', MIXED: '#EF4444' };
+    return Object.entries(methods).map(([label, value]) => ({ label, value: value as number, color: colors[label] || '#6B7280' }));
+  }, [ordersData]);
 
   const todayOrders = daily?.totalOrders || 0;
   const todayRevenue = daily?.revenue || 0;
@@ -68,6 +90,33 @@ export function DashboardPage() {
             </>}
           </motion.div>
         ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-5">
+          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Revenue by Day</h2>
+          {ordersByDay.some(d => d.value > 0) ? (
+            <SimpleBarChart data={ordersByDay} height={180} formatValue={v => formatCurrency(v)} />
+          ) : <p className="text-sm text-gray-400 text-center py-12">No revenue data yet</p>}
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-5">
+          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Payment Methods</h2>
+          {paymentBreakdown.length > 0 ? (
+            <div className="flex items-center justify-center gap-6">
+              <SimpleDonutChart data={paymentBreakdown} centerValue={String(paymentBreakdown.length)} centerLabel="Methods" />
+              <div className="space-y-2">
+                {paymentBreakdown.map(d => (
+                  <div key={d.label} className="flex items-center gap-2 text-sm">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="text-gray-600 dark:text-gray-300">{d.label}</span>
+                    <span className="font-medium ml-auto">{formatCurrency(d.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : <p className="text-sm text-gray-400 text-center py-12">No payment data yet</p>}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
