@@ -14,8 +14,16 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
+    { name: 'setup', testMatch: /.*\.setup\.ts/ },
     {
       name: 'chromium',
+      testIgnore: /auth\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'auth-tests',
+      testMatch: /auth\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
   ],

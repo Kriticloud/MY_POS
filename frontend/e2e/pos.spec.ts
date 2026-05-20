@@ -10,11 +10,6 @@ test.describe('POS Page', () => {
       }
       await route.fulfill({ json });
     });
-    await page.goto('/login');
-    await page.getByPlaceholder('admin@mypos.com').fill('admin@mypos.com');
-    await page.getByPlaceholder('••••••••').fill('admin123');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
     await page.goto('/pos');
   });
 
@@ -171,7 +166,7 @@ test.describe('POS Page', () => {
       await expect(page.getByText(/Complete Payment/i)).toBeVisible({ timeout: 5000 });
       await page.getByRole('button', { name: /Complete Payment/i }).click();
       // Should show receipt or clear cart after successful payment
-      await expect(page.getByText(/Cart \(0\)|Receipt|Order Placed/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole('heading', { name: 'Cart (0)' }).or(page.getByText('Order Placed'))).toBeVisible({ timeout: 10000 });
     });
   });
 });
