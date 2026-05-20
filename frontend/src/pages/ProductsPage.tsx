@@ -81,7 +81,13 @@ export function ProductsPage() {
                   <tr key={p.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center text-lg">{p.category?.icon || '📦'}</div>
+                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center text-lg overflow-hidden">
+                          {p.image ? (
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                          ) : (
+                            p.category?.icon || '📦'
+                          )}
+                        </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{p.name}</p>
                           <p className="text-xs text-gray-500">{p.barcode || '-'}</p>

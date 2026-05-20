@@ -302,8 +302,12 @@ export function POSPage() {
               >
                 <Heart className={`w-3.5 h-3.5 ${favorites.includes(product.id) ? 'fill-current' : ''}`} />
               </button>
-              <div className="w-full h-20 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-lg mb-3 flex items-center justify-center text-2xl">
-                {product.category?.icon || '📦'}
+              <div className="w-full h-20 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-lg mb-3 flex items-center justify-center text-2xl overflow-hidden">
+                {product.image ? (
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
+                ) : (
+                  product.category?.icon || '📦'
+                )}
               </div>
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{product.name}</p>
               <div className="flex items-center justify-between mt-1">

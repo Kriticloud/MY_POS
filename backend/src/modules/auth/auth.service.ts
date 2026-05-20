@@ -61,7 +61,7 @@ export class AuthService {
             await prisma.user.update({ where: { id: user.id }, data: { refreshToken: tokens.refreshToken } });
           } catch {}
           return {
-            user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, branchId: user.branchId },
+            user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, branchId: user.branchId, avatar: user.avatar },
             ...tokens,
           };
         }
@@ -106,6 +106,7 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         branchId: user.branchId,
+        avatar: user.avatar,
       },
       ...tokens,
     };

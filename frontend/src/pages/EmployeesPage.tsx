@@ -58,8 +58,12 @@ export function EmployeesPage() {
               {(employees || []).map((emp: any) => (
                 <div key={emp.id} className={`flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${selectedId === emp.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                   onClick={() => setSelectedId(emp.id)}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${emp.clockedIn ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {emp.firstName[0]}{emp.lastName[0]}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${emp.clockedIn ? 'bg-green-100 text-green-700 ring-2 ring-green-400' : 'bg-gray-100 text-gray-500'}`}>
+                    {emp.avatar ? (
+                      <img src={emp.avatar} alt={`${emp.firstName} ${emp.lastName}`} className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <>{emp.firstName[0]}{emp.lastName[0]}</>
+                    )}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{emp.firstName} {emp.lastName}</p>

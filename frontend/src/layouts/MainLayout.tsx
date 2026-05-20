@@ -119,10 +119,14 @@ export function MainLayout() {
           {/* User section */}
           <div className="p-4 border-t border-gray-100 dark:border-dark-700">
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </span>
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm font-semibold text-primary">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
