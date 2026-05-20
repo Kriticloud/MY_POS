@@ -12,7 +12,21 @@
 # Error details
 
 ```
-Error: apiResponse.json: Response has been disposed
+Error: "route.fetch: Target page, context or browser has been closed
+Call log:
+  - → GET http://localhost:5173/api/settings
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36
+    - accept: application/json, text/plain, */*
+    - accept-encoding: gzip,deflate,br
+    - accept-language: en-US
+    - authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmZTMxMDNkOC0wNDY3LTRlODYtOTcxOS03NTg4YTg0ZjkzNzAiLCJlbWFpbCI6ImFkbWluQG15cG9zLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3OTI2NjM2MSwiZXhwIjoxNzc5MjY5OTYxfQ.5Dc2CnsLmlzM0-L9wE7CzBQ89Sb4-CNWx1lX882ePTU
+    - referer: http://localhost:5173/kitchen
+    - sec-ch-ua: "Chromium";v="148", "HeadlessChrome";v="148", "Not/A)Brand";v="99"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+" while running route callback.
+Consider awaiting `await page.unrouteAll({ behavior: 'ignoreErrors' })`
+before the end of the test to ignore remaining routes in flight.
 ```
 
 # Page snapshot
@@ -89,49 +103,53 @@ Error: apiResponse.json: Response has been disposed
             - generic [ref=e96]:
               - generic [ref=e97]: ORD-002
               - generic [ref=e98]: Table 8
-            - generic [ref=e99]:
-              - img [ref=e100]
-              - text: 2h 30m
-          - generic [ref=e103]:
-            - generic [ref=e104]:
-              - generic [ref=e105]: 1x
-              - paragraph [ref=e107]: Chicken Sandwich
-            - generic [ref=e108]:
-              - generic [ref=e109]: 2x
-              - paragraph [ref=e111]: Latte
-          - button "Start Preparing" [ref=e113] [cursor=pointer]:
-            - img [ref=e114]
+              - img [ref=e99]
+            - generic [ref=e101]:
+              - img [ref=e102]
+              - text: 22h 9m
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]: 1x
+              - paragraph [ref=e109]: Chicken Sandwich
+            - generic [ref=e110]:
+              - generic [ref=e111]: 2x
+              - paragraph [ref=e113]: Latte
+          - button "Start Preparing" [ref=e115] [cursor=pointer]:
+            - img [ref=e116]
             - text: Start Preparing
-        - generic [ref=e116]:
-          - generic [ref=e117]:
-            - generic [ref=e119]: ORD-003
+        - generic [ref=e118]:
+          - generic [ref=e119]:
             - generic [ref=e120]:
-              - img [ref=e121]
-              - text: 2h 15m
-          - generic [ref=e125]:
-            - generic [ref=e126]: 1x
-            - paragraph [ref=e128]: Burger Combo
-          - button "Mark Ready" [ref=e130] [cursor=pointer]:
-            - img [ref=e131]
+              - generic [ref=e121]: ORD-003
+              - img [ref=e122]
+            - generic [ref=e124]:
+              - img [ref=e125]
+              - text: 21h 55m
+          - generic [ref=e129]:
+            - generic [ref=e130]: 1x
+            - paragraph [ref=e132]: Burger Combo
+          - button "Mark Ready" [ref=e134] [cursor=pointer]:
+            - img [ref=e135]
             - text: Mark Ready
-        - generic [ref=e134]:
-          - generic [ref=e135]:
-            - generic [ref=e136]:
-              - generic [ref=e137]: ORD-009
-              - generic [ref=e138]: Table 5
-            - generic [ref=e139]:
-              - img [ref=e140]
-              - text: 1h 46m
-          - generic [ref=e143]:
-            - generic [ref=e144]:
-              - generic [ref=e145]: 1x
-              - paragraph [ref=e147]: Margherita Pizza
-            - generic [ref=e148]:
-              - generic [ref=e149]: 2x
-              - paragraph [ref=e151]: Chocolate Cake
-            - paragraph [ref=e152]: "Order note: Birthday celebration"
-          - button "Start Preparing" [ref=e154] [cursor=pointer]:
-            - img [ref=e155]
+        - generic [ref=e138]:
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - generic [ref=e141]: ORD-009
+              - generic [ref=e142]: Table 5
+              - img [ref=e143]
+            - generic [ref=e145]:
+              - img [ref=e146]
+              - text: 21h 26m
+          - generic [ref=e149]:
+            - generic [ref=e150]:
+              - generic [ref=e151]: 1x
+              - paragraph [ref=e153]: Margherita Pizza
+            - generic [ref=e154]:
+              - generic [ref=e155]: 2x
+              - paragraph [ref=e157]: Chocolate Cake
+            - paragraph [ref=e158]: "Order note: Birthday celebration"
+          - button "Start Preparing" [ref=e160] [cursor=pointer]:
+            - img [ref=e161]
             - text: Start Preparing
 ```
 
@@ -143,9 +161,9 @@ Error: apiResponse.json: Response has been disposed
   3  | test.describe('Kitchen Page', () => {
   4  |   test.beforeEach(async ({ page }) => {
   5  |     await page.route('**/api/settings', async (route) => {
-  6  |       const response = await route.fetch();
-> 7  |       const json = await response.json();
-     |                                   ^ Error: apiResponse.json: Response has been disposed
+> 6  |       const response = await route.fetch();
+     |                                    ^ Error: "route.fetch: Target page, context or browser has been closed
+  7  |       const json = await response.json();
   8  |       if (json.data) {
   9  |         json.data = json.data.map((s: any) => s.key === 'businessType' ? { ...s, value: 'RESTAURANT' } : s);
   10 |       }
