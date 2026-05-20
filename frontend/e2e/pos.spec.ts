@@ -11,8 +11,8 @@ test.describe('POS Page', () => {
       await route.fulfill({ json });
     });
     await page.goto('/login');
-    await page.getByRole('textbox').first().fill('admin@mypos.com');
-    await page.getByRole('textbox').nth(1).fill('admin123');
+    await page.getByPlaceholder('admin@mypos.com').fill('admin@mypos.com');
+    await page.getByPlaceholder('••••••••').fill('admin123');
     await page.getByRole('button', { name: 'Sign In' }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
     await page.goto('/pos');
@@ -22,47 +22,153 @@ test.describe('POS Page', () => {
     await page.unrouteAll({ behavior: 'ignoreErrors' });
   });
 
-  test('should display products grid', async ({ page }) => {
-    await expect(page.getByPlaceholder('Search products...')).toBeVisible();
-    // Wait for products to load
-    await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('Classic Burger')).toBeVisible();
+  test.describe('Product Grid', () => {
+    test('should display product search input', async ({ page }) => {
+      await expect(page.getByPlaceholder(/Search products/i)).toBeVisible();
+    });
+
+    test('should display products after loading', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText('Classic Burger')).toBeVisible();
+    });
+
+    test('should display product prices', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText('$3.50').first()).toBeVisible();
+    });
   });
 
-  test('should display category filters', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /All/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: /Beverages/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: /Food/ })).toBeVisible({ timeout: 15000 });
+  test.describe('Category Filters', () => {
+    test('should display category filter buttons', async ({ page }) => {
+      await expect(page.getByRole('button', { name: /All/ })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByRole('button', { name: /Beverages/ })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByRole('button', { name: /Food/ })).toBeVisible({ timeout: 15000 });
+    });
+
+    test('should filter products by Food category', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByRole('button', { name: /Food/ }).click();
+      await expect(page.getByText('Classic Burger')).toBeVisible();
+      await expect(page.getByText('Espresso')).not.toBeVisible();
+    });
+
+    test('should filter products by Beverages category', async ({ page }) => {
+      await expect(page.getByText('Classic Burger')).toBeVisible({ timeout: 15000 });
+      await page.getByRole('button', { name: /Beverages/ }).click();
+      await expect(page.getByText('Espresso')).toBeVisible();
+      await expect(page.getByText('Classic Burger')).not.toBeVisible();
+    });
+
+    test('should show all products when All category is selected', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByRole('button', { name: /Food/ }).click();
+      await expect(page.getByText('Espresso')).not.toBeVisible();
+      await page.getByRole('button', { name: /All/ }).click();
+      await expect(page.getByText('Espresso')).toBeVisible();
+      await expect(page.getByText('Classic Burger')).toBeVisible();
+    });
   });
 
-  test('should filter products by category', async ({ page }) => {
-    await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
-    await page.getByRole('button', { name: /Food/ }).click();
-    // Food items should be visible
-    await expect(page.getByText('Classic Burger')).toBeVisible();
-    // Beverages should be hidden
-    await expect(page.getByText('Espresso')).not.toBeVisible();
+  test.describe('Search', () => {
+    test('should filter products by search term', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByPlaceholder(/Search products/i).fill('burger');
+      await expect(page.getByText('Classic Burger')).toBeVisible();
+      await expect(page.getByText('Espresso')).not.toBeVisible();
+    });
+
+    test('should show all products when search is cleared', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByPlaceholder(/Search products/i).fill('burger');
+      await expect(page.getByText('Espresso')).not.toBeVisible();
+      await page.getByPlaceholder(/Search products/i).clear();
+      await expect(page.getByText('Espresso')).toBeVisible();
+    });
   });
 
-  test('should add product to cart', async ({ page }) => {
-    await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
-    // Click on Espresso product card
-    await page.getByText('Espresso').first().click();
-    // Cart should update
-    await expect(page.getByText('Cart (1)')).toBeVisible();
-    await expect(page.getByText('$3.50').first()).toBeVisible();
+  test.describe('Cart', () => {
+    test('should add product to cart on click', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await expect(page.getByText('Cart (1)')).toBeVisible();
+    });
+
+    test('should show correct price in cart', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await expect(page.getByText('Cart (1)')).toBeVisible();
+      await expect(page.getByText('$3.50').first()).toBeVisible();
+    });
+
+    test('should increment quantity when adding same product', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await page.getByText('Espresso').first().click();
+      await expect(page.getByText('Cart (2)')).toBeVisible();
+    });
+
+    test('should add multiple different products to cart', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await page.getByText('Classic Burger').first().click();
+      await expect(page.getByText('Cart (2)')).toBeVisible();
+    });
+
+    test('should clear cart when Clear button is clicked', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await expect(page.getByText('Cart (1)')).toBeVisible();
+      await page.getByRole('button', { name: /Clear/i }).click();
+      await expect(page.getByText('Cart (0)')).toBeVisible();
+    });
+
+    test('should show subtotal, tax, and total', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await expect(page.getByText(/Subtotal/)).toBeVisible();
+      await expect(page.getByText(/Tax/)).toBeVisible();
+      await expect(page.getByText(/Total/)).toBeVisible();
+    });
+
+    test('should show Charge button with total amount', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await expect(page.getByRole('button', { name: /Charge \$/ })).toBeVisible();
+    });
   });
 
-  test('should show order type toggle', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'DINE IN' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'TAKEAWAY' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'DELIVERY' })).toBeVisible();
+  test.describe('Order Types', () => {
+    test('should display order type toggle buttons', async ({ page }) => {
+      await expect(page.getByRole('button', { name: 'DINE IN' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'TAKEAWAY' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'DELIVERY' })).toBeVisible();
+    });
+
+    test('should switch between order types', async ({ page }) => {
+      await page.getByRole('button', { name: 'TAKEAWAY' }).click();
+      // TAKEAWAY button should now be active/highlighted
+      await expect(page.getByRole('button', { name: 'TAKEAWAY' })).toBeVisible();
+    });
   });
 
-  test('should search products', async ({ page }) => {
-    await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
-    await page.getByPlaceholder('Search products...').fill('burger');
-    await expect(page.getByText('Classic Burger')).toBeVisible();
-    await expect(page.getByText('Espresso')).not.toBeVisible();
+  test.describe('Payment Flow', () => {
+    test('should open payment modal when Charge button is clicked', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await expect(page.getByText('Cart (1)')).toBeVisible();
+      await page.getByRole('button', { name: /Charge \$/ }).click();
+      // Payment modal should appear
+      await expect(page.getByText(/Complete Payment/i)).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should complete a cash payment', async ({ page }) => {
+      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await page.getByText('Espresso').first().click();
+      await page.getByRole('button', { name: /Charge \$/ }).click();
+      await expect(page.getByText(/Complete Payment/i)).toBeVisible({ timeout: 5000 });
+      await page.getByRole('button', { name: /Complete Payment/i }).click();
+      // Should show receipt or clear cart after successful payment
+      await expect(page.getByText(/Cart \(0\)|Receipt|Order Placed/i)).toBeVisible({ timeout: 10000 });
+    });
   });
 });

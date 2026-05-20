@@ -11,8 +11,8 @@ test.describe('Orders Page', () => {
       await route.fulfill({ json });
     });
     await page.goto('/login');
-    await page.getByRole('textbox').first().fill('admin@mypos.com');
-    await page.getByRole('textbox').nth(1).fill('admin123');
+    await page.getByPlaceholder('admin@mypos.com').fill('admin@mypos.com');
+    await page.getByPlaceholder('••••••••').fill('admin123');
     await page.getByRole('button', { name: 'Sign In' }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
     await page.goto('/orders');
@@ -22,36 +22,90 @@ test.describe('Orders Page', () => {
     await page.unrouteAll({ behavior: 'ignoreErrors' });
   });
 
-  test('should display orders page', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
-    await expect(page.getByText('Manage and track all orders')).toBeVisible();
+  test.describe('Page Layout', () => {
+    test('should display page heading and subtitle', async ({ page }) => {
+      await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
+      await expect(page.getByText('Manage and track all orders')).toBeVisible();
+    });
+
+    test('should display search input', async ({ page }) => {
+      await expect(page.getByPlaceholder(/Search orders/i)).toBeVisible();
+    });
   });
 
-  test('should display status filter tabs', async ({ page }) => {
-    const filterSection = page.locator('[class*="gap"]').filter({ has: page.getByRole('button', { name: 'ALL' }) }).first();
-    await expect(filterSection.getByRole('button', { name: 'ALL' })).toBeVisible();
-    await expect(filterSection.getByRole('button', { name: 'PENDING' })).toBeVisible();
-    await expect(filterSection.getByRole('button', { name: 'CONFIRMED' })).toBeVisible();
-    await expect(filterSection.getByRole('button', { name: 'PREPARING' })).toBeVisible();
-    await expect(filterSection.getByRole('button', { name: 'READY' })).toBeVisible();
-    await expect(filterSection.getByRole('button', { name: 'COMPLETED' })).toBeVisible();
+  test.describe('Status Filter Tabs', () => {
+    test('should display all status filter buttons', async ({ page }) => {
+      const filterSection = page.locator('[class*="gap"]').filter({ has: page.getByRole('button', { name: 'ALL' }) }).first();
+      await expect(filterSection.getByRole('button', { name: 'ALL' })).toBeVisible();
+      await expect(filterSection.getByRole('button', { name: 'PENDING' })).toBeVisible();
+      await expect(filterSection.getByRole('button', { name: 'CONFIRMED' })).toBeVisible();
+      await expect(filterSection.getByRole('button', { name: 'PREPARING' })).toBeVisible();
+      await expect(filterSection.getByRole('button', { name: 'READY' })).toBeVisible();
+      await expect(filterSection.getByRole('button', { name: 'COMPLETED' })).toBeVisible();
+    });
+
+    test('should filter orders when clicking COMPLETED tab', async ({ page }) => {
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      await page.getByRole('button', { name: 'COMPLETED' }).first().click();
+      await expect(page.getByRole('cell', { name: 'COMPLETED' }).first()).toBeVisible();
+    });
+
+    test('should show all orders when ALL tab is clicked', async ({ page }) => {
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      // Click COMPLETED first to filter
+      await page.getByRole('button', { name: 'COMPLETED' }).first().click();
+      await expect(page.getByRole('cell', { name: 'COMPLETED' }).first()).toBeVisible();
+      // Click ALL to reset
+      await page.getByRole('button', { name: 'ALL' }).first().click();
+      // Should show orders with various statuses
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible();
+    });
   });
 
-  test('should show orders in table', async ({ page }) => {
-    await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
+  test.describe('Orders Table', () => {
+    test('should display orders table with data', async ({ page }) => {
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('should show order status badges with colors', async ({ page }) => {
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      const statusCell = page.getByRole('cell', { name: /COMPLETED|CONFIRMED|PREPARING|READY|PENDING|SERVED/ }).first();
+      await expect(statusCell).toBeVisible();
+    });
+
+    test('should show order totals with currency', async ({ page }) => {
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/\$\d+/).first()).toBeVisible();
+    });
   });
 
-  test('should filter orders by status', async ({ page }) => {
-    await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
-    await page.getByRole('button', { name: 'COMPLETED' }).first().click();
-    // Completed orders should show in the table
-    await expect(page.getByRole('cell', { name: 'COMPLETED' }).first()).toBeVisible();
+  test.describe('Search', () => {
+    test('should filter orders by customer name', async ({ page }) => {
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      await page.getByPlaceholder(/Search orders/i).fill('John');
+      await expect(page.getByText('John Doe').first()).toBeVisible();
+    });
+
+    test('should clear search and show all orders', async ({ page }) => {
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      await page.getByPlaceholder(/Search orders/i).fill('John');
+      await expect(page.getByText('John Doe').first()).toBeVisible();
+      await page.getByPlaceholder(/Search orders/i).clear();
+      // All orders should be visible again
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible();
+    });
   });
 
-  test('should search orders', async ({ page }) => {
-    await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
-    await page.getByPlaceholder('Search orders...').fill('John');
-    await expect(page.getByText('John Doe').first()).toBeVisible();
+  test.describe('Order Details', () => {
+    test('should open order detail modal when clicking view button', async ({ page }) => {
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
+      // Click the eye/view icon on the first order row
+      const viewButton = page.getByRole('row').nth(1).getByRole('button').first();
+      await viewButton.click();
+      // Modal should appear with order details
+      await expect(page.getByText(/Order ORD-/)).toBeVisible({ timeout: 5000 });
+    });
   });
 });

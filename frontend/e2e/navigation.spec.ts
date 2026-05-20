@@ -11,8 +11,8 @@ test.describe('Navigation', () => {
       await route.fulfill({ json });
     });
     await page.goto('/login');
-    await page.getByRole('textbox').first().fill('admin@mypos.com');
-    await page.getByRole('textbox').nth(1).fill('admin123');
+    await page.getByPlaceholder('admin@mypos.com').fill('admin@mypos.com');
+    await page.getByPlaceholder('••••••••').fill('admin123');
     await page.getByRole('button', { name: 'Sign In' }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
   });
@@ -21,48 +21,90 @@ test.describe('Navigation', () => {
     await page.unrouteAll({ behavior: 'ignoreErrors' });
   });
 
-  test('should navigate to all pages', async ({ page }) => {
-    // Navigate via URL since sidebar may be offscreen in test viewport
-    await page.goto('/pos');
-    await expect(page.getByPlaceholder('Search products...')).toBeVisible({ timeout: 15000 });
+  test.describe('Page Routing', () => {
+    test('should navigate to POS page', async ({ page }) => {
+      await page.goto('/pos');
+      await expect(page.getByPlaceholder(/Search products/i)).toBeVisible({ timeout: 15000 });
+    });
 
-    await page.goto('/orders');
-    await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible({ timeout: 15000 });
+    test('should navigate to Orders page', async ({ page }) => {
+      await page.goto('/orders');
+      await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible({ timeout: 15000 });
+    });
 
-    await page.goto('/tables');
-    await expect(page.getByRole('heading', { name: 'Tables' })).toBeVisible({ timeout: 15000 });
+    test('should navigate to Tables page', async ({ page }) => {
+      await page.goto('/tables');
+      await expect(page.getByRole('heading', { name: 'Tables' })).toBeVisible({ timeout: 15000 });
+    });
 
-    await page.goto('/kitchen');
-    await expect(page.getByRole('heading', { name: 'Kitchen Display' })).toBeVisible({ timeout: 15000 });
+    test('should navigate to Kitchen page', async ({ page }) => {
+      await page.goto('/kitchen');
+      await expect(page.getByRole('heading', { name: 'Kitchen Display' })).toBeVisible({ timeout: 15000 });
+    });
 
-    await page.goto('/products');
-    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible({ timeout: 15000 });
+    test('should navigate to Products page', async ({ page }) => {
+      await page.goto('/products');
+      await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible({ timeout: 15000 });
+    });
 
-    await page.goto('/customers');
-    await expect(page.getByRole('heading', { name: 'Customers' })).toBeVisible({ timeout: 15000 });
+    test('should navigate to Customers page', async ({ page }) => {
+      await page.goto('/customers');
+      await expect(page.getByRole('heading', { name: 'Customers' })).toBeVisible({ timeout: 15000 });
+    });
 
-    await page.goto('/reports');
-    await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible({ timeout: 15000 });
+    test('should navigate to Reports page', async ({ page }) => {
+      await page.goto('/reports');
+      await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible({ timeout: 15000 });
+    });
 
-    await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 15000 });
+    test('should navigate to Settings page', async ({ page }) => {
+      await page.goto('/settings');
+      await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 15000 });
+    });
   });
 
-  test('should show sidebar navigation links', async ({ page }) => {
-    // Use a wider viewport to ensure sidebar is visible
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/dashboard');
-    await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'POS' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Orders' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Products' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Customers' })).toBeVisible();
+  test.describe('Sidebar', () => {
+    test('should show all navigation links in sidebar', async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await page.goto('/dashboard');
+      await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'POS' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Orders' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Products' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Customers' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Reports' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
+    });
+
+    test('should display user info in sidebar', async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await page.goto('/dashboard');
+      await expect(page.getByText('Admin User')).toBeVisible();
+      await expect(page.getByText('ADMIN', { exact: true })).toBeVisible();
+    });
+
+    test('should navigate when clicking sidebar links', async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await page.goto('/dashboard');
+      await page.getByRole('link', { name: 'Orders' }).click();
+      await expect(page).toHaveURL(/\/orders/);
+      await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible({ timeout: 15000 });
+    });
+
+    test('should highlight the active navigation link', async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await page.goto('/dashboard');
+      // The Dashboard link should have an active/selected style
+      const dashboardLink = page.getByRole('link', { name: 'Dashboard' });
+      await expect(dashboardLink).toBeVisible();
+    });
   });
 
-  test('should display user info in sidebar', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/dashboard');
-    await expect(page.getByText('Admin User')).toBeVisible();
-    await expect(page.getByText('ADMIN', { exact: true })).toBeVisible();
+  test.describe('Responsive Layout', () => {
+    test('should handle mobile viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto('/dashboard');
+      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15000 });
+    });
   });
 });

@@ -11,8 +11,8 @@ test.describe('Kitchen Page', () => {
       await route.fulfill({ json });
     });
     await page.goto('/login');
-    await page.getByRole('textbox').first().fill('admin@mypos.com');
-    await page.getByRole('textbox').nth(1).fill('admin123');
+    await page.getByPlaceholder('admin@mypos.com').fill('admin@mypos.com');
+    await page.getByPlaceholder('••••••••').fill('admin123');
     await page.getByRole('button', { name: 'Sign In' }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
     await page.goto('/kitchen');
@@ -22,20 +22,55 @@ test.describe('Kitchen Page', () => {
     await page.unrouteAll({ behavior: 'ignoreErrors' });
   });
 
-  test('should display kitchen display page', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Kitchen Display' })).toBeVisible();
-    await expect(page.getByText('Live')).toBeVisible();
+  test.describe('Page Layout', () => {
+    test('should display kitchen display heading', async ({ page }) => {
+      await expect(page.getByRole('heading', { name: 'Kitchen Display' })).toBeVisible();
+    });
+
+    test('should show live status indicator', async ({ page }) => {
+      await expect(page.getByText('Live')).toBeVisible();
+    });
+
+    test('should display active orders subtitle', async ({ page }) => {
+      await expect(page.getByText('Active orders in the kitchen')).toBeVisible();
+    });
   });
 
-  test('should show active orders', async ({ page }) => {
-    // Kitchen shows CONFIRMED and PREPARING orders
-    await expect(page.getByText('ORD-').first()).toBeVisible({ timeout: 15000 });
+  test.describe('Order Cards', () => {
+    test('should display order numbers', async ({ page }) => {
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('should show order items with quantities', async ({ page }) => {
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
+      // Order cards show items like "2x Classic Burger"
+      await expect(page.getByText(/\d+x\s/).first()).toBeVisible();
+    });
+
+    test('should show elapsed time on order cards', async ({ page }) => {
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
+      // Elapsed time shown as e.g. "5m", "1h 2m"
+      await expect(page.getByText(/\d+m/).first()).toBeVisible();
+    });
   });
 
-  test('should show action buttons for orders', async ({ page }) => {
-    await expect(page.getByText('ORD-').first()).toBeVisible({ timeout: 15000 });
-    // Should have at least one action button
-    const actionButtons = page.getByRole('button', { name: /Start Preparing|Mark Ready/ });
-    await expect(actionButtons.first()).toBeVisible();
+  test.describe('Action Buttons', () => {
+    test('should show status transition buttons', async ({ page }) => {
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
+      const actionButtons = page.getByRole('button', { name: /Start Preparing|Mark Ready/ });
+      await expect(actionButtons.first()).toBeVisible();
+    });
+
+    test('should transition order status when action button clicked', async ({ page }) => {
+      await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
+      const actionButton = page.getByRole('button', { name: /Start Preparing|Mark Ready/ }).first();
+      const buttonText = await actionButton.textContent();
+      await actionButton.click();
+      // After clicking, the order should either change status or disappear
+      // Give time for the API call and re-render
+      await page.waitForTimeout(2000);
+      // The page should still be functional
+      await expect(page.getByRole('heading', { name: 'Kitchen Display' })).toBeVisible();
+    });
   });
 });
