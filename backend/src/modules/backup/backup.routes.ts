@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import fs from 'fs';
 import path from 'path';
+import logger from '../../lib/logger';
 
 const router = Router();
 router.use(authenticate);
@@ -9,6 +10,35 @@ router.use(authorize('SUPER_ADMIN', 'ADMIN'));
 
 const DB_PATH = path.resolve(__dirname, '../../../prisma/dev.db');
 const BACKUP_DIR = path.resolve(__dirname, '../../../backups');
+const MAX_AUTO_BACKUPS = 7; // Keep last 7 auto-backups
+
+// Auto-backup scheduler (every 6 hours)
+function performAutoBackup() {
+  try {
+    if (!fs.existsSync(DB_PATH)) return;
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupName = `auto-backup-${timestamp}.db`;
+    fs.copyFileSync(DB_PATH, path.join(BACKUP_DIR, backupName));
+    logger.info(`Auto-backup created: ${backupName}`);
+    // Clean old auto-backups
+    const autoBackups = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('auto-backup-'))
+      .sort()
+      .reverse();
+    for (const old of autoBackups.slice(MAX_AUTO_BACKUPS)) {
+      fs.unlinkSync(path.join(BACKUP_DIR, old));
+      logger.info(`Cleaned old backup: ${old}`);
+    }
+  } catch (e: any) {
+    logger.error(`Auto-backup failed: ${e.message}`);
+  }
+}
+
+// Schedule auto-backup every 6 hours
+setInterval(performAutoBackup, 6 * 60 * 60 * 1000);
+// Run first backup 1 minute after startup
+setTimeout(performAutoBackup, 60 * 1000);
 
 // GET list backups
 router.get('/', (_req: Request, res: Response) => {

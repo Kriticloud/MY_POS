@@ -32,6 +32,9 @@ import { backupRouter } from './modules/backup/backup.routes';
 import { exchangeRateRouter } from './modules/exchange/exchange.routes';
 import { giftCardRouter } from './modules/giftcards/giftcard.routes';
 import uploadRouter from './modules/upload/upload.routes';
+import { paymentRouter } from './modules/payments/payment.routes';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerDocument } from './lib/swagger';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -71,6 +74,9 @@ app.get('/api/health', (_, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// API Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 // Serve uploaded files
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
@@ -99,6 +105,7 @@ app.use('/api/backups', backupRouter);
 app.use('/api/exchange-rates', exchangeRateRouter);
 app.use('/api/gift-cards', giftCardRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/payments', paymentRouter);
 app.use('/api/settings', settingRouter);
 
 // Error handling

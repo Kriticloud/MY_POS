@@ -121,6 +121,9 @@ model Customer {
   updatedAt     DateTime @updatedAt
   orders        Order[]
   membership    Membership? @relation(fields: [membershipId], references: [id])
+  @@index([email])
+  @@index([phone])
+  @@index([createdAt])
   @@map("customers")
 }
 
