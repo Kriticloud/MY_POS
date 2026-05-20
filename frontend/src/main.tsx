@@ -6,6 +6,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
 import './styles/globals.css';
+import './utils/errorTracker'; // Initialize global error tracking
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -88,6 +88,11 @@ export function MainLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-dark-950">
+      {/* Skip to main content - accessibility */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">
+        Skip to main content
+      </a>
+
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -172,7 +177,7 @@ export function MainLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main id="main-content" className="flex-1 flex flex-col overflow-hidden" role="main">
         {/* Top bar */}
         <header className="flex items-center gap-4 px-4 py-3 bg-white dark:bg-dark-900 border-b border-gray-200 dark:border-dark-700">
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden">
