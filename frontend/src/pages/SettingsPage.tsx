@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2, MessageSquare, Send, Phone, CheckCircle, XCircle, Mail } from 'lucide-react';
+import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2, MessageSquare, Send, Phone, CheckCircle, XCircle, Mail, Tablet, Wifi, WifiOff, Monitor, RefreshCw } from 'lucide-react';
 import { useSettings, useUpdateSetting, useChangePassword, useTaxes, useCreateTax, useUpdateTax, useDeleteTax, useBackups, useCreateBackup, useRestoreBackup, useDeleteBackup } from '../hooks/useApi';
 import { useSettingsStore, type BusinessType } from '../store/settingsStore';
 import { useThemeStore } from '../store/themeStore';
@@ -16,6 +16,7 @@ const sections = [
   { id: 'taxes', label: 'Tax Rates', icon: Receipt },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'sms', label: 'SMS / Twilio', icon: MessageSquare },
+  { id: 'devices', label: 'Devices', icon: Tablet },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'database', label: 'Database', icon: Database },
 ];
@@ -341,7 +342,205 @@ export function SettingsPage() {
             )}
 
             {activeSection === 'database' && <DatabaseSection />}
+            {activeSection === 'devices' && <DevicesSection />}
           </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DevicesSection() {
+  const [deviceInfo, setDeviceInfo] = useState<any>(null);
+  const [devices, setDevices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [masterIp, setMasterIp] = useState('');
+  const [deviceName, setDeviceName] = useState('');
+  const [connecting, setConnecting] = useState(false);
+
+  const fetchDeviceInfo = async () => {
+    try {
+      const res = await fetch('/api/devices/info');
+      const data = await res.json();
+      if (data.success) setDeviceInfo(data.data);
+    } catch { /* ignore */ }
+  };
+
+  const fetchDevices = async () => {
+    try {
+      const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || '';
+      const res = await fetch('/api/devices', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.success) setDevices(data.data);
+    } catch { /* ignore */ }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchDeviceInfo();
+    fetchDevices();
+    const interval = setInterval(fetchDevices, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const registerDevice = async () => {
+    if (!deviceName.trim()) { toast.error('Enter a device name'); return; }
+    setConnecting(true);
+    try {
+      const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || '';
+      const res = await fetch('/api/devices/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ deviceName: deviceName.trim(), deviceType: 'tablet' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Device "${deviceName}" registered!`);
+        setDeviceName('');
+        fetchDevices();
+      } else {
+        toast.error(data.error || 'Failed to register');
+      }
+    } catch { toast.error('Connection failed — check network'); }
+    setConnecting(false);
+  };
+
+  const removeDevice = async (id: string) => {
+    try {
+      const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || '';
+      await fetch(`/api/devices/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      fetchDevices();
+      toast.success('Device removed');
+    } catch { toast.error('Failed to remove device'); }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-bold">Device Management</h2>
+        <p className="text-xs text-gray-500 mt-1">Connect tablets and mobile devices to sync orders in real-time (Restaurant mode)</p>
+      </div>
+
+      {/* Master Device Info */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+            <Monitor className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-blue-900 dark:text-blue-100">This Device (Master)</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">{deviceInfo?.hostname || 'Loading...'}</p>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <Wifi className="w-4 h-4 text-green-500" />
+            <span className="text-xs font-medium text-green-600">Online</span>
+          </div>
+        </div>
+        <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-3 space-y-1">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Master IP Address</span>
+            <span className="font-mono font-bold text-blue-700 dark:text-blue-300">{deviceInfo?.ips?.join(', ') || '...'}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Port</span>
+            <span className="font-mono font-bold text-blue-700 dark:text-blue-300">{deviceInfo?.port || '4000'}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Connected Devices</span>
+            <span className="font-bold text-blue-700 dark:text-blue-300">{devices.filter(d => d.status === 'online').length}</span>
+          </div>
+        </div>
+        <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-3">
+          Share this IP address with tablet devices. They should open <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">http://{deviceInfo?.ips?.[0] || '...'}:{deviceInfo?.port || '4000'}</code> in their browser.
+        </p>
+      </div>
+
+      {/* Register New Device */}
+      <div className="border dark:border-gray-700 rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Tablet className="w-4 h-4 text-purple-500" />
+          Add New Device
+        </h3>
+        <p className="text-xs text-gray-500">Register a tablet or mobile device to allow order-taking by staff</p>
+        <div className="flex gap-2">
+          <input type="text" value={deviceName} onChange={e => setDeviceName(e.target.value)}
+            placeholder="Device name (e.g. Tablet-1, Waiter-iPad)"
+            className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-purple-500/20" />
+          <button onClick={registerDevice} disabled={connecting || !deviceName.trim()}
+            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium whitespace-nowrap flex items-center gap-2">
+            {connecting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Tablet className="w-4 h-4" />}
+            Register
+          </button>
+        </div>
+      </div>
+
+      {/* Client Connection Instructions */}
+      <div className="border dark:border-gray-700 rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Wifi className="w-4 h-4 text-green-500" />
+          Connect Client Device
+        </h3>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
+          <p className="text-xs text-gray-600 dark:text-gray-400"><strong>Step 1:</strong> Connect the tablet to the same Wi-Fi network as this POS</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400"><strong>Step 2:</strong> On the tablet, open browser and go to:</p>
+          <div className="bg-white dark:bg-gray-900 rounded-lg px-3 py-2 font-mono text-sm text-center text-blue-600 dark:text-blue-400 border dark:border-gray-700">
+            http://{deviceInfo?.ips?.[0] || '192.168.x.x'}:{deviceInfo?.port || '4000'}
+          </div>
+          <p className="text-xs text-gray-600 dark:text-gray-400"><strong>Step 3:</strong> Log in with staff credentials and start taking orders</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400"><strong>Step 4:</strong> Orders will sync automatically to this master device</p>
+        </div>
+        <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3">
+          <Bell className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-300">All devices must be on the <strong>same local network</strong>. Orders, tables, and kitchen updates sync in real-time via WebSocket.</p>
+        </div>
+      </div>
+
+      {/* Connected Devices List */}
+      <div className="border dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Connected Devices ({devices.length})</h3>
+          <button onClick={fetchDevices} className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1">
+            <RefreshCw className="w-3 h-3" /> Refresh
+          </button>
+        </div>
+        {loading ? (
+          <div className="p-8 text-center text-gray-400 text-sm">Loading devices...</div>
+        ) : devices.length === 0 ? (
+          <div className="p-8 text-center">
+            <Tablet className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No devices connected yet</p>
+            <p className="text-xs text-gray-400 mt-1">Register a device or connect a tablet using the IP above</p>
+          </div>
+        ) : (
+          <div className="divide-y dark:divide-gray-700">
+            {devices.map((device: any) => (
+              <div key={device.id} className="px-4 py-3 flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${device.status === 'online' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                  <Tablet className={`w-4 h-4 ${device.status === 'online' ? 'text-green-600' : 'text-gray-400'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{device.name}</p>
+                  <p className="text-xs text-gray-500">{device.ipAddress} • {device.deviceType || 'tablet'}{device.user ? ` • ${device.user}` : ''}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {device.status === 'online' ? (
+                    <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
+                      <Wifi className="w-3 h-3" /> Online
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                      <WifiOff className="w-3 h-3" /> Offline
+                    </span>
+                  )}
+                  <button onClick={() => removeDevice(device.id)}
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Remove device">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

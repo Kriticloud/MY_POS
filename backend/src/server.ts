@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { setIO } from './lib/socket';
 import logger from './lib/logger';
 import { validateEnv } from './lib/validateEnv';
+import { setupDeviceSocket } from './modules/devices/device.routes';
 
 validateEnv();
 
@@ -19,6 +20,9 @@ const io = new Server(httpServer, {
 });
 
 setIO(io);
+
+// Device sync socket events
+setupDeviceSocket(io);
 
 io.on('connection', (socket) => {
   logger.info(`Client connected: ${socket.id}`);
