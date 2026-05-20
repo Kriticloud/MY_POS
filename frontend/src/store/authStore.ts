@@ -20,6 +20,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   setTokens: (access: string, refresh: string) => void;
+  setUser: (user: Partial<User>) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -45,6 +46,10 @@ export const useAuthStore = create<AuthState>()(
       setTokens: (accessToken: string, refreshToken: string) => {
         set({ accessToken, refreshToken });
         api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      },
+
+      setUser: (updates: Partial<User>) => {
+        set((state) => ({ user: state.user ? { ...state.user, ...updates } : null }));
       },
     }),
     { name: 'auth-storage' }

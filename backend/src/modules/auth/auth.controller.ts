@@ -81,6 +81,18 @@ export class AuthController {
     }
   };
 
+  updateProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { firstName, lastName, phone, avatar } = req.body;
+      const user = await prisma.user.update({
+        where: { id: req.user!.id },
+        data: { ...(firstName && { firstName }), ...(lastName && { lastName }), ...(phone !== undefined && { phone }), ...(avatar !== undefined && { avatar }) },
+        select: { id: true, email: true, firstName: true, lastName: true, role: true, phone: true, avatar: true },
+      });
+      res.json({ success: true, data: user });
+    } catch (error) { next(error); }
+  };
+
   changePassword = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const { currentPassword, newPassword } = req.body;
