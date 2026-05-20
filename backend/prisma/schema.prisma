@@ -389,3 +389,18 @@ model PurchaseOrderItem {
   product         Product       @relation(fields: [productId], references: [id])
   @@map("purchase_order_items")
 }
+
+model GiftCard {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  initialValue Float
+  balance      Float
+  currency     String   @default("USD")
+  isActive     Boolean  @default(true)
+  expiresAt    DateTime?
+  customerId   String?
+  issuedById   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@map("gift_cards")
+}
