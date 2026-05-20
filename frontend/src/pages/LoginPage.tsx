@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
-import { ShoppingCart, Eye, EyeOff } from 'lucide-react';
+import { ShoppingCart, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { api } from '../services/api';
 import toast from 'react-hot-toast';
 
 export function LoginPage() {
@@ -10,6 +11,9 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
@@ -89,7 +93,7 @@ export function LoginPage() {
                 <input type="checkbox" className="rounded border-gray-300" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-primary hover:underline">
+              <a href="#" onClick={(e) => { e.preventDefault(); setShowForgot(true); setResetEmail(email); }} className="text-sm text-primary hover:underline">
                 Forgot password?
               </a>
             </div>
@@ -121,6 +125,37 @@ export function LoginPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Forgot Password Modal */}
+      {showForgot && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-dark-800 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <button onClick={() => setShowForgot(false)} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
+              <ArrowLeft className="w-4 h-4" /> Back to login
+            </button>
+            <h2 className="text-lg font-bold mb-2">Reset Password</h2>
+            <p className="text-sm text-gray-500 mb-4">Enter your email and we'll send a temporary password.</p>
+            <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} placeholder="your@email.com"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-700 text-sm mb-3" />
+            <button disabled={resetLoading || !resetEmail} onClick={async () => {
+              setResetLoading(true);
+              try {
+                const { data } = await api.post('/auth/reset-password', { email: resetEmail });
+                if (data.tempPassword) {
+                  toast.success(`Temporary password: ${data.tempPassword}`, { duration: 10000 });
+                } else {
+                  toast.success('If the email exists, a reset link has been sent');
+                }
+                setShowForgot(false);
+              } catch { toast.error('Failed to reset password'); }
+              setResetLoading(false);
+            }} className="w-full py-3 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-50">
+              {resetLoading ? 'Sending...' : 'Reset Password'}
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

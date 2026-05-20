@@ -141,21 +141,23 @@ export function MainLayout() {
           {/* User section */}
           <div className="p-4 border-t border-gray-100 dark:border-dark-700">
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                {user?.avatar ? (
-                  <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-sm font-semibold text-primary">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-xs text-gray-500 truncate">{user?.role}</p>
-              </div>
+              <NavLink to="/profile" className="flex items-center gap-3 flex-1 min-w-0 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 p-1 -m-1 transition-colors">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-sm font-semibold text-primary">
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">{user?.role}</p>
+                </div>
+              </NavLink>
               <button
                 onClick={handleLogout}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800 text-gray-500"

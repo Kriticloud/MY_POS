@@ -2,6 +2,7 @@ import app from './app';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { setIO } from './lib/socket';
+import logger from './lib/logger';
 
 const PORT = process.env.PORT || 4001;
 
@@ -17,7 +18,7 @@ const io = new Server(httpServer, {
 setIO(io);
 
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  logger.info(`Client connected: ${socket.id}`);
 
   socket.on('join-branch', (branchId: string) => {
     socket.join(`branch:${branchId}`);
@@ -36,11 +37,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
+    logger.info(`Client disconnected: ${socket.id}`);
   });
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 WebSocket ready`);
+  logger.info(`🚀 Server running on port ${PORT}`);
+  logger.info(`📡 WebSocket ready`);
 });

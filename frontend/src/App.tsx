@@ -27,6 +27,7 @@ const MembershipsPage = lazy(() => import('./pages/MembershipsPage').then(m => (
 const DiscountsPage = lazy(() => import('./pages/DiscountsPage').then(m => ({ default: m.DiscountsPage })));
 const BranchesPage = lazy(() => import('./pages/BranchesPage').then(m => ({ default: m.BranchesPage })));
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage').then(m => ({ default: m.AuditLogPage })));
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 
 function PageLoader() {
   return (
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="discounts" element={<ErrorBoundary><DiscountsPage /></ErrorBoundary>} />
             <Route path="branches" element={<ErrorBoundary><BranchesPage /></ErrorBoundary>} />
             <Route path="audit-log" element={<ErrorBoundary><AuditLogPage /></ErrorBoundary>} />
+            <Route path="profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
           </Route>
         </Routes>
       </Suspense>

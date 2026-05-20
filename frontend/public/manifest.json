@@ -1,0 +1,22 @@
+{
+  "name": "MyPOS",
+  "short_name": "MyPOS",
+  "description": "Modern Point of Sale System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    { "name": "New Sale", "url": "/pos", "description": "Open POS terminal" },
+    { "name": "Dashboard", "url": "/dashboard", "description": "View dashboard" },
+    { "name": "Orders", "url": "/orders", "description": "View orders" }
+  ]
+}
