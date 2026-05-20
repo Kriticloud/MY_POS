@@ -10,7 +10,7 @@
         },
         {
           "name": "auth-storage",
-          "value": "{\"state\":{\"user\":{\"id\":\"fe3103d8-0467-4e86-9719-7588a84f9370\",\"email\":\"admin@mypos.com\",\"firstName\":\"Admin\",\"lastName\":\"User\",\"role\":\"ADMIN\",\"branchId\":\"8542e65f-1fef-4861-ab92-83a54643750d\"},\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmZTMxMDNkOC0wNDY3LTRlODYtOTcxOS03NTg4YTg0ZjkzNzAiLCJlbWFpbCI6ImFkbWluQG15cG9zLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3OTI3NjA0OCwiZXhwIjoxNzc5Mjc5NjQ4fQ.MFzwkCXV-CjpWpxeSIqwEIRxS_0q_Rdh9pkaI7_lek0\",\"refreshToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmZTMxMDNkOC0wNDY3LTRlODYtOTcxOS03NTg4YTg0ZjkzNzAiLCJlbWFpbCI6ImFkbWluQG15cG9zLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3OTI3NjA0OCwiZXhwIjoxNzc5ODgwODQ4fQ.7ONoqEaL31Nk_ID23oupdRdo0Xod1F1FM2AjXTT3BEk\",\"isAuthenticated\":true},\"version\":0}"
+          "value": "{\"state\":{\"user\":{\"id\":\"fe3103d8-0467-4e86-9719-7588a84f9370\",\"email\":\"admin@mypos.com\",\"firstName\":\"Admin\",\"lastName\":\"User\",\"role\":\"ADMIN\",\"branchId\":\"8542e65f-1fef-4861-ab92-83a54643750d\"},\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmZTMxMDNkOC0wNDY3LTRlODYtOTcxOS03NTg4YTg0ZjkzNzAiLCJlbWFpbCI6ImFkbWluQG15cG9zLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3OTI3NzcyNiwiZXhwIjoxNzc5MjgxMzI2fQ.NYsw0tmkAoneU--oyK-XG2qzCHFckdovvJlHdCHrJYA\",\"refreshToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmZTMxMDNkOC0wNDY3LTRlODYtOTcxOS03NTg4YTg0ZjkzNzAiLCJlbWFpbCI6ImFkbWluQG15cG9zLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3OTI3NzcyNiwiZXhwIjoxNzc5ODgyNTI2fQ.ldicxeeTk-trLXXK3wknsQJdfBj1PNvbNG5qf1CGkC4\",\"isAuthenticated\":true},\"version\":0}"
         }
       ]
     }
