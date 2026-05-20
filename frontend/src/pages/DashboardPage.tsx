@@ -22,11 +22,17 @@ export function DashboardPage() {
   const recentOrders = (ordersData || []).slice(0, 8);
   const topProds = (topProducts || []).slice(0, 5);
 
+  const todayOrders = daily?.totalOrders || 0;
+  const todayRevenue = daily?.revenue || 0;
+  const totalRevenue = salesData?.totalRevenue || 0;
+  const totalOrders = salesData?.orderCount || 0;
+  const avgOrderValue = salesData?.averageOrderValue || 0;
+
   const stats = [
-    { label: 'Total Revenue', value: formatCurrency(salesData?.totalRevenue || 0), icon: DollarSign, change: '+12.5%', up: true, color: 'bg-blue-500' },
-    { label: `Today's ${labels.orders}`, value: String(daily?.orderCount || 0), icon: ShoppingBag, change: '+8.2%', up: true, color: 'bg-green-500' },
-    { label: `Avg ${labels.order} Value`, value: formatCurrency(salesData?.averageOrderValue || 0), icon: TrendingUp, change: '+5.7%', up: true, color: 'bg-amber-500' },
-    { label: `Total ${labels.orders}`, value: String(salesData?.orderCount || 0), icon: Users, change: '+4.1%', up: true, color: 'bg-purple-500' },
+    { label: 'Total Revenue', value: formatCurrency(totalRevenue), icon: DollarSign, change: totalRevenue > 0 ? `${totalOrders} orders` : 'No data', up: totalRevenue > 0, color: 'bg-blue-500' },
+    { label: `Today's ${labels.orders}`, value: String(todayOrders), icon: ShoppingBag, change: todayRevenue > 0 ? formatCurrency(todayRevenue) : 'No sales yet', up: todayOrders > 0, color: 'bg-green-500' },
+    { label: `Avg ${labels.order} Value`, value: formatCurrency(avgOrderValue), icon: TrendingUp, change: avgOrderValue > 0 ? 'Per order' : 'No data', up: avgOrderValue > 0, color: 'bg-amber-500' },
+    { label: `Total ${labels.orders}`, value: String(totalOrders), icon: Users, change: totalOrders > 0 ? 'All time' : 'No data', up: totalOrders > 0, color: 'bg-purple-500' },
   ];
 
   const statusColor: Record<string, string> = {

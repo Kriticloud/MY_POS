@@ -17,6 +17,7 @@ import { tableRouter } from './modules/tables/table.routes';
 import { inventoryRouter } from './modules/inventory/inventory.routes';
 import { reportRouter } from './modules/reports/report.routes';
 import { settingRouter } from './modules/settings/setting.routes';
+import { employeeRouter } from './modules/employees/employee.routes';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -64,6 +65,7 @@ app.use('/api/customers', customerRouter);
 app.use('/api/tables', tableRouter);
 app.use('/api/inventory', inventoryRouter);
 app.use('/api/reports', reportRouter);
+app.use('/api/employees', employeeRouter);
 app.use('/api/settings', settingRouter);
 
 // Error handling
