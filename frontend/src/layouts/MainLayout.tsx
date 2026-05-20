@@ -116,7 +116,7 @@ export function MainLayout() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Main navigation">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}

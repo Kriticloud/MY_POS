@@ -6,7 +6,7 @@ import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settin
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 
-const tierColors: Record<string, string> = { BRONZE: 'bg-orange-100 text-orange-700', SILVER: 'bg-gray-100 text-gray-700', GOLD: 'bg-amber-100 text-amber-700', PLATINUM: 'bg-purple-100 text-purple-700' };
+const tierColors: Record<string, string> = { BRONZE: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', SILVER: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', GOLD: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', PLATINUM: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' };
 const tierThresholds = [{ tier: 'PLATINUM', min: 5000 }, { tier: 'GOLD', min: 2000 }, { tier: 'SILVER', min: 500 }, { tier: 'BRONZE', min: 0 }];
 
 function getTier(points: number) { return tierThresholds.find(t => points >= t.min)?.tier || 'BRONZE'; }
@@ -104,8 +104,8 @@ export function CustomersPage() {
             <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">{editing ? 'Edit' : 'Add'} {labels.customer}</h2><button onClick={() => setShowModal(false)}><X className="w-5 h-5" /></button></div>
             <div className="space-y-3">
               {[{ key: 'firstName', label: 'First Name *' }, { key: 'lastName', label: 'Last Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'address', label: 'Address' }].map(f => (
-                <div key={f.key}><label className="text-xs font-medium text-gray-500">{f.label}</label>
-                  <input type="text" value={(form as any)[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" /></div>
+                <div key={f.key}><label className="text-xs font-medium text-gray-500 dark:text-gray-400">{f.label}</label>
+                  <input type="text" value={(form as any)[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600" /></div>
               ))}
             </div>
             <button onClick={handleSave} className="w-full mt-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
@@ -141,7 +141,7 @@ export function CustomersPage() {
               <p className="text-xs text-amber-600 mb-2">100 points = $1.00 discount</p>
               <div className="flex gap-2">
                 <input type="number" value={redeemPoints} onChange={e => setRedeemPoints(e.target.value)} max={loyaltyCustomer.loyaltyPoints}
-                  placeholder="Points to redeem" className="flex-1 px-3 py-2 rounded-lg border text-sm" />
+                  placeholder="Points to redeem" className="flex-1 px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
                 <button onClick={handleRedeem} disabled={!redeemPoints || parseInt(redeemPoints) > loyaltyCustomer.loyaltyPoints}
                   className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:bg-gray-300">Redeem</button>
               </div>
