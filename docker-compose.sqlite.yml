@@ -1,0 +1,33 @@
+# Docker Compose for local development with SQLite
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mypos-backend
+    environment:
+      DATABASE_URL: file:./dev.db
+      JWT_SECRET: ${JWT_SECRET:-supersecretkey}
+      PORT: 4000
+      NODE_ENV: production
+    ports:
+      - "4000:4000"
+    volumes:
+      - backend_data:/app/prisma
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mypos-frontend
+    environment:
+      VITE_API_URL: http://backend:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  backend_data:
