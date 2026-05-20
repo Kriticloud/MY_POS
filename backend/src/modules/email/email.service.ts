@@ -7,7 +7,7 @@ import { prisma } from '../../lib/prisma';
 
 interface EmailConfig {
   enabled: boolean;
-  provider: 'resend' | 'sendgrid' | 'smtp';
+  provider: 'resend' | 'sendgrid' | 'gmail' | 'smtp';
   resendApiKey: string;
   sendgridApiKey: string;
   senderEmail: string;
@@ -30,7 +30,7 @@ async function getEmailConfig(): Promise<EmailConfig> {
 
   return {
     enabled: map.emailEnabled === 'true',
-    provider: (map.emailProvider as 'resend' | 'sendgrid' | 'smtp') || 'resend',
+    provider: (map.emailProvider as 'resend' | 'sendgrid' | 'gmail' | 'smtp') || 'resend',
     resendApiKey: map.resendApiKey || process.env.RESEND_API_KEY || '',
     sendgridApiKey: map.sendgridApiKey || process.env.SENDGRID_API_KEY || '',
     senderEmail: map.senderEmail || process.env.EMAIL_FROM || 'noreply@mypos.com',
@@ -173,7 +173,14 @@ export async function sendEmail(options: EmailOptions) {
     if (config.provider === 'sendgrid' && config.sendgridApiKey) {
       return await sendViaSendGrid(config, options.to, options.subject, options.html);
     }
-    // Fallback to SMTP
+    if (config.provider === 'gmail' && config.smtpUser && config.smtpPass) {
+      // Force Gmail SMTP settings
+      config.smtpHost = 'smtp.gmail.com';
+      config.smtpPort = 587;
+      config.senderEmail = config.smtpUser;
+      return await sendViaSmtp(config, options.to, options.subject, options.html);
+    }
+    // Fallback to custom SMTP
     return await sendViaSmtp(config, options.to, options.subject, options.html);
   } catch (error: any) {
     logger.error('Failed to send email:', error.message);

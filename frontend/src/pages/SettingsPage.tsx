@@ -554,6 +554,7 @@ function SmsSection({ getValue, setValue, saveSection }: {
             className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
             <option value="resend">Resend (Recommended — easiest setup)</option>
             <option value="sendgrid">SendGrid</option>
+            <option value="gmail">Gmail (easiest — no domain needed)</option>
             <option value="smtp">Custom SMTP</option>
           </select>
         </div>
@@ -565,8 +566,12 @@ function SmsSection({ getValue, setValue, saveSection }: {
               placeholder="re_xxxxxxxxxxxxxxxxxxxx" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
             <p className="text-xs text-gray-400 mt-1">
               Sign up free at <a href="https://resend.com/signup" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">resend.com</a> → API Keys → Create.
-              Use <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">onboarding@resend.dev</code> as sender email for testing.
             </p>
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 mt-2">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                <strong>Note:</strong> Without a verified domain, Resend only sends to your own email. Use <strong>Gmail</strong> provider to send to any address.
+              </p>
+            </div>
           </div>
         ) : getValue('emailProvider', 'resend') === 'sendgrid' ? (
           <div>
@@ -574,6 +579,27 @@ function SmsSection({ getValue, setValue, saveSection }: {
             <input type="password" value={getValue('sendgridApiKey')} onChange={e => setValue('sendgridApiKey', e.target.value)}
               placeholder="SG.xxxxxxxxxxxxxxxxxxxx" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
             <p className="text-xs text-gray-400 mt-1">Go to <a href="https://app.sendgrid.com/settings/api_keys" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">SendGrid → API Keys</a> → Create API Key → Full Access</p>
+          </div>
+        ) : getValue('emailProvider', 'resend') === 'gmail' ? (
+          <div className="space-y-3">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                <strong>Setup:</strong> Go to{' '}
+                <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline">Google App Passwords</a>
+                {' '}→ Create one for "MyPOS" → paste below. Requires 2-Step Verification enabled.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Gmail Address</label>
+              <input type="email" value={getValue('smtpUser')} onChange={e => { setValue('smtpUser', e.target.value); setValue('senderEmail', e.target.value); setValue('smtpHost', 'smtp.gmail.com'); setValue('smtpPort', '587'); }}
+                placeholder="your@gmail.com" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">App Password</label>
+              <input type="password" value={getValue('smtpPass')} onChange={e => setValue('smtpPass', e.target.value)}
+                placeholder="xxxx xxxx xxxx xxxx" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
+              <p className="text-xs text-gray-400 mt-1">16-character app password from Google (not your regular Gmail password)</p>
+            </div>
           </div>
         ) : (
           <>
