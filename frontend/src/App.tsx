@@ -28,6 +28,7 @@ const DiscountsPage = lazy(() => import('./pages/DiscountsPage').then(m => ({ de
 const BranchesPage = lazy(() => import('./pages/BranchesPage').then(m => ({ default: m.BranchesPage })));
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage').then(m => ({ default: m.AuditLogPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const GiftCardsPage = lazy(() => import('./pages/GiftCardsPage').then(m => ({ default: m.GiftCardsPage })));
 
 function PageLoader() {
   return (
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="branches" element={<ErrorBoundary><BranchesPage /></ErrorBoundary>} />
             <Route path="audit-log" element={<ErrorBoundary><AuditLogPage /></ErrorBoundary>} />
             <Route path="profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
+            <Route path="gift-cards" element={<ErrorBoundary><GiftCardsPage /></ErrorBoundary>} />
           </Route>
         </Routes>
       </Suspense>

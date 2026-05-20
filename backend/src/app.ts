@@ -29,6 +29,7 @@ import { taxRouter } from './modules/taxes/tax.routes';
 import { branchRouter } from './modules/branches/branch.routes';
 import { backupRouter } from './modules/backup/backup.routes';
 import { exchangeRateRouter } from './modules/exchange/exchange.routes';
+import { giftCardRouter } from './modules/giftcards/giftcard.routes';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -93,6 +94,7 @@ app.use('/api/taxes', taxRouter);
 app.use('/api/branches', branchRouter);
 app.use('/api/backups', backupRouter);
 app.use('/api/exchange-rates', exchangeRateRouter);
+app.use('/api/gift-cards', giftCardRouter);
 app.use('/api/settings', settingRouter);
 
 // Error handling

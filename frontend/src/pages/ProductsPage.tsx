@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit, Trash2, Package, X, Barcode } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, X, Barcode, Download, Upload } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 import { useProducts, useCategories, useCreateProduct, useUpdateProduct, useDeleteProduct } from '../hooks/useApi';
 import { useSettingsStore, getPageTitle, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
 import { Skeleton } from '../components/ui/Skeleton';
 import { printBarcodeLabel } from '../services/escpos';
 import { validate, validateRequired, validatePrice } from '../utils/validation';
+import { exportToCSV, parseCSV } from '../utils/csv';
 import toast from 'react-hot-toast';
 
 const emptyForm = { name: '', slug: '', price: '', costPrice: '', sku: '', barcode: '', description: '', categoryId: '', taxRate: '8.5', unit: 'piece', duration: '', image: '', modifiers: '', variants: '' };
@@ -66,9 +67,32 @@ export function ProductsPage() {
           <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1>
           <p className="text-gray-500 mt-1">{pageInfo.subtitle}</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium">
-          <Plus className="w-4 h-4" /> Add {labels.product}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => {
+            const data = (apiProducts || []).map((p: any) => ({ name: p.name, sku: p.sku || '', price: p.price, costPrice: p.costPrice || '', category: p.category?.name || '', barcode: p.barcode || '', taxRate: p.taxRate }));
+            exportToCSV(data, 'products');
+          }} className="flex items-center gap-1 px-3 py-2 text-sm border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600">
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <label className="flex items-center gap-1 px-3 py-2 text-sm border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600 cursor-pointer">
+            <Upload className="w-4 h-4" /> Import
+            <input type="file" accept=".csv" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0]; if (!file) return;
+              const text = await file.text();
+              const rows = parseCSV(text);
+              let created = 0;
+              for (const row of rows) {
+                if (!row.name || !row.price) continue;
+                try { await createProduct.mutateAsync({ name: row.name, price: parseFloat(row.price), sku: row.sku || undefined, barcode: row.barcode || undefined, costPrice: row.costPrice ? parseFloat(row.costPrice) : undefined, taxRate: row.taxRate ? parseFloat(row.taxRate) : 8.5, slug: row.name.toLowerCase().replace(/\s+/g, '-'), businessType }); created++; } catch {}
+              }
+              toast.success(`Imported ${created} of ${rows.length} products`);
+              e.target.value = '';
+            }} />
+          </label>
+          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium">
+            <Plus className="w-4 h-4" /> Add {labels.product}
+          </button>
+        </div>
       </div>
 
       <div className="relative max-w-md">

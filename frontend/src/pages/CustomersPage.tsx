@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, Star, Award, History, X, Gift } from 'lucide-react';
+import { Search, Plus, Star, Award, History, X, Gift, Download } from 'lucide-react';
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useRedeemLoyalty, useLoyaltyHistory } from '../hooks/useApi';
 import { formatCurrency } from '../utils/helpers';
 import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { validate, validateRequired, validateEmail, validatePhone } from '../utils/validation';
+import { exportToCSV } from '../utils/csv';
 
 const tierColors: Record<string, string> = { BRONZE: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', SILVER: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', GOLD: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', PLATINUM: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' };
 const tierThresholds = [{ tier: 'PLATINUM', min: 5000 }, { tier: 'GOLD', min: 2000 }, { tier: 'SILVER', min: 500 }, { tier: 'BRONZE', min: 0 }];
@@ -62,7 +63,15 @@ export function CustomersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1><p className="text-gray-500 mt-1">{pageInfo.subtitle}</p></div>
-        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><Plus className="w-4 h-4" /> Add {labels.customer}</button>
+        <div className="flex gap-2">
+          <button onClick={() => {
+            const data = (customers || []).map((c: any) => ({ firstName: c.firstName, lastName: c.lastName || '', email: c.email || '', phone: c.phone || '', address: c.address || '', loyaltyPoints: c.loyaltyPoints }));
+            exportToCSV(data, 'customers');
+          }} className="flex items-center gap-1 px-3 py-2 text-sm border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600">
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><Plus className="w-4 h-4" /> Add {labels.customer}</button>
+        </div>
       </div>
 
       <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
