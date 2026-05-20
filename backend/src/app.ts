@@ -11,6 +11,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { devFallback, devRouter } from './middleware/devFallback';
 import { sanitizeInput } from './middleware/sanitize';
 import { authRouter } from './modules/auth/auth.routes';
+import { twoFactorRouter } from './modules/auth/twoFactor.routes';
 import { productRouter } from './modules/products/product.routes';
 import { categoryRouter } from './modules/categories/category.routes';
 import { orderRouter } from './modules/orders/order.routes';
@@ -86,6 +87,7 @@ app.use(devRouter);
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/2fa', twoFactorRouter);
 app.use('/api/products', productRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/orders', orderRouter);
