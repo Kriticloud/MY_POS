@@ -1,4 +1,20 @@
 import { formatCurrency, formatDate } from '../utils/helpers';
+import { useI18nStore } from '../store/i18nStore';
+
+// Receipt label translations
+const receiptLabels: Record<string, Record<string, string>> = {
+  en: { order: 'Order', date: 'Date', cashier: 'Cashier', item: 'Item', qty: 'Qty', amount: 'Amount', subtotal: 'Subtotal', tax: 'Tax', discount: 'Discount', total: 'TOTAL', payment: 'Payment', thanks: 'Thank you for your visit!' },
+  es: { order: 'Pedido', date: 'Fecha', cashier: 'Cajero', item: 'Artículo', qty: 'Cant', amount: 'Monto', subtotal: 'Subtotal', tax: 'Impuesto', discount: 'Descuento', total: 'TOTAL', payment: 'Pago', thanks: '¡Gracias por su visita!' },
+  fr: { order: 'Commande', date: 'Date', cashier: 'Caissier', item: 'Article', qty: 'Qté', amount: 'Montant', subtotal: 'Sous-total', tax: 'Taxe', discount: 'Remise', total: 'TOTAL', payment: 'Paiement', thanks: 'Merci de votre visite!' },
+  de: { order: 'Bestellung', date: 'Datum', cashier: 'Kassierer', item: 'Artikel', qty: 'Mge', amount: 'Betrag', subtotal: 'Zwischensumme', tax: 'Steuer', discount: 'Rabatt', total: 'GESAMT', payment: 'Zahlung', thanks: 'Vielen Dank für Ihren Besuch!' },
+  hi: { order: 'ऑर्डर', date: 'तारीख', cashier: 'कैशियर', item: 'वस्तु', qty: 'मात्रा', amount: 'राशि', subtotal: 'उप-कुल', tax: 'कर', discount: 'छूट', total: 'कुल', payment: 'भुगतान', thanks: 'आपकी यात्रा के लिए धन्यवाद!' },
+  ar: { order: 'طلب', date: 'التاريخ', cashier: 'أمين الصندوق', item: 'صنف', qty: 'الكمية', amount: 'المبلغ', subtotal: 'المجموع الفرعي', tax: 'الضريبة', discount: 'الخصم', total: 'الإجمالي', payment: 'الدفع', thanks: 'شكراً لزيارتكم!' },
+};
+
+function getReceiptLabels() {
+  const lang = useI18nStore.getState().language;
+  return receiptLabels[lang] || receiptLabels.en;
+}
 
 interface ReceiptData {
   orderNumber: string;
@@ -17,6 +33,7 @@ interface ReceiptData {
 }
 
 export function generateReceiptHTML(data: ReceiptData): string {
+  const l = getReceiptLabels();
   const itemRows = data.items
     .map(
       (item) => `
@@ -52,29 +69,29 @@ export function generateReceiptHTML(data: ReceiptData): string {
     ${data.businessPhone ? `<p>Tel: ${data.businessPhone}</p>` : ''}
   </div>
   <div class="divider"></div>
-  <p><strong>Order:</strong> ${data.orderNumber}</p>
-  <p><strong>Date:</strong> ${formatDate(data.date)}</p>
-  <p><strong>Cashier:</strong> ${data.cashierName}</p>
+  <p><strong>${l.order}:</strong> ${data.orderNumber}</p>
+  <p><strong>${l.date}:</strong> ${formatDate(data.date)}</p>
+  <p><strong>${l.cashier}:</strong> ${data.cashierName}</p>
   <div class="divider"></div>
   <table>
     <tr>
-      <th style="text-align:left">Item</th>
-      <th style="text-align:center">Qty</th>
-      <th style="text-align:right">Amount</th>
+      <th style="text-align:left">${l.item}</th>
+      <th style="text-align:center">${l.qty}</th>
+      <th style="text-align:right">${l.amount}</th>
     </tr>
     ${itemRows}
   </table>
   <div class="divider"></div>
   <table class="totals">
-    <tr><td>Subtotal:</td><td style="text-align:right">${formatCurrency(data.subtotal)}</td></tr>
-    <tr><td>Tax:</td><td style="text-align:right">${formatCurrency(data.tax)}</td></tr>
-    ${data.discount > 0 ? `<tr><td>Discount:</td><td style="text-align:right">-${formatCurrency(data.discount)}</td></tr>` : ''}
-    <tr class="total-row"><td>TOTAL:</td><td style="text-align:right">${formatCurrency(data.total)}</td></tr>
+    <tr><td>${l.subtotal}:</td><td style="text-align:right">${formatCurrency(data.subtotal)}</td></tr>
+    <tr><td>${l.tax}:</td><td style="text-align:right">${formatCurrency(data.tax)}</td></tr>
+    ${data.discount > 0 ? `<tr><td>${l.discount}:</td><td style="text-align:right">-${formatCurrency(data.discount)}</td></tr>` : ''}
+    <tr class="total-row"><td>${l.total}:</td><td style="text-align:right">${formatCurrency(data.total)}</td></tr>
   </table>
   <div class="divider"></div>
-  <p><strong>Payment:</strong> ${data.paymentMethod}</p>
+  <p><strong>${l.payment}:</strong> ${data.paymentMethod}</p>
   <div class="footer">
-    <p>${data.footer || 'Thank you for your visit!'}</p>
+    <p>${data.footer || l.thanks}</p>
   </div>
 </body>
 </html>`;

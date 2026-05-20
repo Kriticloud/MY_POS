@@ -2,13 +2,14 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../store/cartStore';
 import { formatCurrency } from '../utils/helpers';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, ShoppingBag, X, Percent, ScanBarcode, User, Wallet, Star, Printer, Receipt, CheckCircle2, PauseCircle, PlayCircle, MessageSquare, Heart, Zap } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, ShoppingBag, X, Percent, ScanBarcode, User, Wallet, Star, Printer, Receipt, CheckCircle2, PauseCircle, PlayCircle, MessageSquare, Heart, Zap, Monitor } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useProducts, useCategories, useCreateOrder, useCustomers, useProductByBarcode } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
 import { printReceipt } from '../services/receipt';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
+import { openCustomerDisplay } from '../services/customerDisplay';
 
 interface SplitPayment { method: string; amount: number; }
 interface HeldOrder { id: string; items: any[]; customerId: string | null; orderType: string; discount: number; notes: string; heldAt: Date; label: string; }
@@ -261,6 +262,10 @@ export function POSPage() {
           <button onClick={() => { setShowBarcode(!showBarcode); setTimeout(() => barcodeRef.current?.focus(), 100); }}
             className={`p-2.5 rounded-xl border transition-all ${showBarcode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600'}`}>
             <ScanBarcode className="w-5 h-5" />
+          </button>
+          <button onClick={openCustomerDisplay} title="Customer Display"
+            className="p-2.5 rounded-xl border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+            <Monitor className="w-5 h-5" />
           </button>
         </div>
 
