@@ -1,12 +1,48 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, ChefHat, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, ChefHat, CheckCircle2, AlertCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { useKitchenQueue, useUpdateOrderStatus } from '../hooks/useApi';
 import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 
 export function KitchenPage() {
-  const { data: orders, isLoading } = useKitchenQueue();
+  const { data: orders, isLoading, dataUpdatedAt } = useKitchenQueue();
   const updateStatus = useUpdateOrderStatus();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [lastCount, setLastCount] = useState(0);
+  const [refreshCountdown, setRefreshCountdown] = useState(10);
+
+  // Auto-refresh countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - dataUpdatedAt) / 1000);
+      setRefreshCountdown(Math.max(0, 10 - elapsed));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [dataUpdatedAt]);
+
+  // Sound notification on new orders
+  useEffect(() => {
+    if (!orders) return;
+    if (orders.length > lastCount && lastCount > 0 && soundEnabled) {
+      // Play a brief notification tone
+      try {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 800;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+      } catch { /* Audio not supported */ }
+      toast('🔔 New order in kitchen!', { icon: '🍳' });
+    }
+    setLastCount(orders.length);
+  }, [orders?.length]);
 
   const handleStatus = async (orderId: string, status: string) => {
     try {
@@ -25,10 +61,20 @@ export function KitchenPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Kitchen Display</h1>
-          <p className="text-gray-500 mt-1">Active orders in the kitchen</p>
+          <p className="text-gray-500 mt-1">Active orders in the kitchen • {(orders || []).length} orders</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Live
+        <div className="flex items-center gap-3">
+          <button onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`p-2 rounded-xl transition-all ${soundEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+            title={soundEnabled ? 'Sound on' : 'Sound off'}>
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Live
+            <span className="text-xs text-green-600 ml-1">
+              <RefreshCw className={`w-3 h-3 inline ${refreshCountdown === 0 ? 'animate-spin' : ''}`} /> {refreshCountdown}s
+            </span>
+          </div>
         </div>
       </div>
 

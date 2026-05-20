@@ -6,6 +6,7 @@ import { Search, Filter, Eye, X, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
+import { OrderStatusTimeline } from '../components/OrderStatusTimeline';
 
 const statusOptions = ['ALL', 'PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED'];
 const statusColor: Record<string, string> = {
@@ -123,6 +124,9 @@ export function OrdersPage() {
                 <button onClick={() => setSelectedOrder(null)}><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-4">
+                {/* Status Timeline */}
+                <OrderStatusTimeline currentStatus={selectedOrder.status} />
+
                 <div className="flex gap-3 text-sm">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[selectedOrder.status]}`}>{selectedOrder.status}</span>
                   <span className="text-gray-500">{selectedOrder.orderType?.replace('_', ' ')}</span>

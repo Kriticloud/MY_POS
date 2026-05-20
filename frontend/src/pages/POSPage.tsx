@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../store/cartStore';
 import { formatCurrency } from '../utils/helpers';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, ShoppingBag, X, Percent, ScanBarcode, User, Wallet, Star, Printer, Receipt, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, ShoppingBag, X, Percent, ScanBarcode, User, Wallet, Star, Printer, Receipt, CheckCircle2, PauseCircle, PlayCircle, MessageSquare, Heart, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useProducts, useCategories, useCreateOrder, useCustomers, useProductByBarcode } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
@@ -10,6 +10,7 @@ import { useSettingsStore, getBusinessConfig, getEntityLabels } from '../store/s
 import { printReceipt } from '../services/receipt';
 
 interface SplitPayment { method: string; amount: number; }
+interface HeldOrder { id: string; items: any[]; customerId: string | null; orderType: string; discount: number; notes: string; heldAt: Date; label: string; }
 
 export function POSPage() {
   const [search, setSearch] = useState('');
@@ -23,6 +24,13 @@ export function POSPage() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [lastOrderData, setLastOrderData] = useState<any>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteInput, setNoteInput] = useState('');
+  const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
+  const [showHeldOrders, setShowHeldOrders] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('pos-favorites') || '[]'); } catch { return []; }
+  });
 
   // Split payment state
   const [splitPayments, setSplitPayments] = useState<SplitPayment[]>([{ method: 'CASH', amount: 0 }]);
@@ -165,6 +173,64 @@ export function POSPage() {
     if (!isNaN(val) && val >= 0) { cart.setDiscount(val); setShowDiscount(false); setDiscountInput(''); toast.success(`Discount of ${formatCurrency(val)} applied`); }
   };
 
+  // Hold/Park order
+  const holdOrder = () => {
+    if (cart.items.length === 0) return;
+    const held: HeldOrder = {
+      id: crypto.randomUUID(),
+      items: [...cart.items],
+      customerId: cart.customerId,
+      orderType: cart.orderType,
+      discount: cart.discount,
+      notes: cart.notes,
+      heldAt: new Date(),
+      label: selectedCustomer ? `${selectedCustomer.firstName}'s order` : `Order (${cart.items.length} items)`,
+    };
+    setHeldOrders(prev => [...prev, held]);
+    cart.clearCart();
+    toast.success('Order held — you can recall it anytime');
+  };
+
+  const recallOrder = (held: HeldOrder) => {
+    if (cart.items.length > 0) {
+      // Park current cart first
+      holdOrder();
+    }
+    held.items.forEach(item => {
+      for (let i = 0; i < item.quantity; i++) {
+        cart.addItem({ productId: item.productId, name: item.name, price: item.price });
+      }
+    });
+    if (held.customerId) cart.setCustomer(held.customerId);
+    cart.setOrderType(held.orderType);
+    cart.setDiscount(held.discount);
+    cart.setOrderNotes(held.notes);
+    setHeldOrders(prev => prev.filter(h => h.id !== held.id));
+    setShowHeldOrders(false);
+    toast.success('Order recalled');
+  };
+
+  // Favorites
+  const toggleFavorite = (productId: string) => {
+    setFavorites(prev => {
+      const updated = prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId];
+      localStorage.setItem('pos-favorites', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const favoriteProducts = useMemo(() => {
+    return (apiProducts || []).filter((p: any) => favorites.includes(p.id));
+  }, [apiProducts, favorites]);
+
+  // Item note save
+  const saveItemNote = (itemId: string) => {
+    cart.updateNotes(itemId, noteInput);
+    setEditingNoteId(null);
+    setNoteInput('');
+    toast.success('Note added');
+  };
+
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-4">
       {/* Product Grid */}
@@ -199,14 +265,43 @@ export function POSPage() {
           ))}
         </div>
 
+        {/* Favorites Quick Access */}
+        {favoriteProducts.length > 0 && selectedCategory === 'all' && !search && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Quick Add</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {favoriteProducts.map((product: any) => (
+                <motion.button key={product.id} whileTap={{ scale: 0.95 }}
+                  onClick={() => { cart.addItem({ productId: product.id, name: product.name, price: product.price }); toast.success(`Added ${product.name}`, { duration: 1500 }); }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm whitespace-nowrap hover:bg-amber-100 transition-all">
+                  <span className="text-xs">{product.category?.icon || '⭐'}</span>
+                  <span className="font-medium text-amber-800 dark:text-amber-200">{product.name}</span>
+                  <span className="text-xs text-amber-600">{formatCurrency(product.price)}</span>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 content-start">
           {products.map((product: any) => (
             <motion.button key={product.id} whileTap={{ scale: 0.97 }}
               onClick={() => cart.addItem({ productId: product.id, name: product.name, price: product.price })}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 text-left shadow-card hover:shadow-md transition-all border border-transparent hover:border-blue-200 relative">
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 text-left shadow-card hover:shadow-md transition-all border border-transparent hover:border-blue-200 relative group">
               {product.stockQuantity !== undefined && product.stockQuantity <= (product.minStockLevel || 5) && (
                 <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" title="Low stock" />
               )}
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                className={`absolute top-2 right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all ${
+                  favorites.includes(product.id) ? 'opacity-100 text-red-500 bg-red-50' : 'text-gray-300 hover:text-red-400 bg-white/80'
+                }`}
+              >
+                <Heart className={`w-3.5 h-3.5 ${favorites.includes(product.id) ? 'fill-current' : ''}`} />
+              </button>
               <div className="w-full h-20 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-lg mb-3 flex items-center justify-center text-2xl">
                 {product.category?.icon || '📦'}
               </div>
@@ -262,20 +357,39 @@ export function POSPage() {
           <AnimatePresence>
             {cart.items.map(item => (
               <motion.div key={item.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{formatCurrency(item.price)} each</p>
+                className="flex flex-col gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{formatCurrency(item.price)} each</p>
+                    {item.notes && !editingNoteId && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 italic">📝 {item.notes}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => cart.updateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 rounded-md bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm"><Minus className="w-3 h-3" /></button>
+                    <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                    <button onClick={() => cart.updateQuantity(item.id, item.quantity + 1)} className="w-7 h-7 rounded-md bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm"><Plus className="w-3 h-3" /></button>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{formatCurrency(item.price * item.quantity)}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <button onClick={() => { setEditingNoteId(editingNoteId === item.id ? null : item.id); setNoteInput(item.notes || ''); }}
+                        className={`p-0.5 rounded ${editingNoteId === item.id ? 'text-blue-500' : 'text-gray-400 hover:text-blue-400'}`}><MessageSquare className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => cart.removeItem(item.id)} className="text-red-400 hover:text-red-500 p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => cart.updateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 rounded-md bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm"><Minus className="w-3 h-3" /></button>
-                  <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                  <button onClick={() => cart.updateQuantity(item.id, item.quantity + 1)} className="w-7 h-7 rounded-md bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm"><Plus className="w-3 h-3" /></button>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">{formatCurrency(item.price * item.quantity)}</p>
-                  <button onClick={() => cart.removeItem(item.id)} className="text-red-400 hover:text-red-500 mt-1"><Trash2 className="w-3.5 h-3.5" /></button>
-                </div>
+                {/* Inline note editor */}
+                {editingNoteId === item.id && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="flex gap-2">
+                    <input type="text" value={noteInput} onChange={e => setNoteInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && saveItemNote(item.id)}
+                      placeholder="Add note (e.g. no onions)..." autoFocus
+                      className="flex-1 px-2 py-1.5 rounded-md border text-xs bg-white dark:bg-gray-600" />
+                    <button onClick={() => saveItemNote(item.id)} className="px-2 py-1.5 bg-blue-600 text-white rounded-md text-xs">Save</button>
+                  </motion.div>
+                )}
               </motion.div>
             ))}
           </AnimatePresence>
@@ -283,7 +397,20 @@ export function POSPage() {
         </div>
 
         <div className="p-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
-          <button onClick={() => setShowDiscount(!showDiscount)} className="flex items-center justify-center gap-1 w-full py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200"><Percent className="w-3.5 h-3.5" /> Discount</button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowDiscount(!showDiscount)} className="flex items-center justify-center gap-1 flex-1 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200"><Percent className="w-3.5 h-3.5" /> Discount</button>
+            <button onClick={holdOrder} disabled={cart.items.length === 0}
+              className="flex items-center justify-center gap-1 flex-1 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-700 dark:text-amber-300 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed">
+              <PauseCircle className="w-3.5 h-3.5" /> Hold
+            </button>
+            {heldOrders.length > 0 && (
+              <button onClick={() => setShowHeldOrders(!showHeldOrders)}
+                className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-300 hover:bg-green-100 relative">
+                <PlayCircle className="w-3.5 h-3.5" /> Recall
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 text-white text-[10px] rounded-full flex items-center justify-center">{heldOrders.length}</span>
+              </button>
+            )}
+          </div>
           {showDiscount && (
             <div className="flex gap-2">
               <input type="number" placeholder="Amount" value={discountInput} onChange={e => setDiscountInput(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border text-sm" />
@@ -300,6 +427,40 @@ export function POSPage() {
           </button>
         </div>
       </div>
+
+      {/* Held Orders Modal */}
+      <AnimatePresence>
+        {showHeldOrders && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold flex items-center gap-2"><PauseCircle className="w-5 h-5 text-amber-500" /> Held Orders ({heldOrders.length})</h2>
+                <button onClick={() => setShowHeldOrders(false)}><X className="w-5 h-5" /></button>
+              </div>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {heldOrders.map(held => (
+                  <div key={held.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{held.label}</p>
+                      <p className="text-xs text-gray-500">{held.items.length} items • {new Date(held.heldAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <button onClick={() => recallOrder(held)}
+                      className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700">
+                      Recall
+                    </button>
+                    <button onClick={() => setHeldOrders(prev => prev.filter(h => h.id !== held.id))}
+                      className="p-1.5 text-red-400 hover:text-red-500">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {heldOrders.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">No held orders</p>}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Payment Modal — Split Payments */}
       <AnimatePresence>

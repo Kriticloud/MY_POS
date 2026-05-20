@@ -15,6 +15,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { KitchenPage } from './pages/KitchenPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { InventoryPage } from './pages/InventoryPage';
+import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -36,6 +37,7 @@ export default function App() {
         path="/"
         element={
           <ProtectedRoute>
+            <KeyboardShortcuts />
             <MainLayout />
           </ProtectedRoute>
         }

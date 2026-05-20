@@ -5,6 +5,9 @@ import { useDailySummary, useOrders, useTopProducts, useSalesReport } from '../h
 import { Skeleton } from '../components/ui/Skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useSettingsStore, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
+import { LiveClock } from '../components/LiveClock';
+import { QuickActions } from '../components/QuickActions';
+import { ActivityFeed } from '../components/ActivityFeed';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -35,10 +38,10 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Welcome back! Here's what's happening today.</p>
-      </div>
+      <LiveClock />
+
+      {/* Quick Actions */}
+      <QuickActions />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, i) => (
@@ -113,6 +116,9 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Activity Feed */}
+      <ActivityFeed />
     </div>
   );
 }
