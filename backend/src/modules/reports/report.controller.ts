@@ -173,4 +173,88 @@ export class ReportController {
       next(error);
     }
   };
+
+  taxReport = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(String(startDate)) : new Date(new Date().setDate(new Date().getDate() - 30));
+      const end = endDate ? new Date(String(endDate)) : new Date();
+
+      const orders = await prisma.order.findMany({
+        where: { status: 'COMPLETED', createdAt: { gte: start, lte: end } },
+        include: { items: { include: { product: { select: { name: true, taxRate: true } } } } },
+      });
+
+      // Group by tax rate
+      const taxBreakdown: Record<number, { rate: number; taxableAmount: number; taxCollected: number; orderCount: number }> = {};
+      for (const order of orders) {
+        for (const item of order.items) {
+          const rate = item.product?.taxRate || 0;
+          if (!taxBreakdown[rate]) taxBreakdown[rate] = { rate, taxableAmount: 0, taxCollected: 0, orderCount: 0 };
+          const itemTotal = item.totalPrice;
+          const taxAmount = itemTotal * (rate / (100 + rate)); // Extract tax from inclusive price
+          taxBreakdown[rate].taxableAmount += itemTotal - taxAmount;
+          taxBreakdown[rate].taxCollected += taxAmount;
+          taxBreakdown[rate].orderCount++;
+        }
+      }
+
+      const totalTaxCollected = Object.values(taxBreakdown).reduce((s, t) => s + t.taxCollected, 0);
+      const totalTaxableAmount = Object.values(taxBreakdown).reduce((s, t) => s + t.taxableAmount, 0);
+
+      res.json({
+        success: true,
+        data: { breakdown: Object.values(taxBreakdown), totalTaxCollected, totalTaxableAmount, period: { start, end }, orderCount: orders.length },
+      });
+    } catch (error) { next(error); }
+  };
+
+  profitAndLoss = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(String(startDate)) : new Date(new Date().setDate(new Date().getDate() - 30));
+      const end = endDate ? new Date(String(endDate)) : new Date();
+
+      const orders = await prisma.order.findMany({
+        where: { status: 'COMPLETED', createdAt: { gte: start, lte: end } },
+        include: { items: { include: { product: { select: { costPrice: true, price: true } } } } },
+      });
+
+      let totalRevenue = 0;
+      let totalCOGS = 0;
+      let totalDiscount = 0;
+      let totalTax = 0;
+
+      for (const order of orders) {
+        totalRevenue += order.totalAmount;
+        totalDiscount += order.discountAmount;
+        totalTax += order.taxAmount;
+        for (const item of order.items) {
+          const cost = item.product?.costPrice || (item.product?.price || 0) * 0.6;
+          totalCOGS += cost * item.quantity;
+        }
+      }
+
+      const grossProfit = totalRevenue - totalCOGS;
+      const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+      const netProfit = grossProfit - totalDiscount;
+      const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+      res.json({
+        success: true,
+        data: {
+          revenue: totalRevenue,
+          costOfGoods: totalCOGS,
+          grossProfit,
+          grossMargin,
+          discounts: totalDiscount,
+          taxCollected: totalTax,
+          netProfit,
+          netMargin,
+          orderCount: orders.length,
+          period: { start, end },
+        },
+      });
+    } catch (error) { next(error); }
+  };
 }

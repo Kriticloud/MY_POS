@@ -13,6 +13,8 @@ router.get('/daily', controller.dailySummary);
 router.get('/top-products', controller.topProducts);
 router.get('/staff-performance', controller.staffPerformance);
 router.get('/margins', controller.margins);
+router.get('/tax', controller.taxReport);
+router.get('/profit-loss', controller.profitAndLoss);
 
 // Scheduled reports
 router.get('/scheduled', (_req: Request, res: Response) => { res.json(getScheduledReports()); });
