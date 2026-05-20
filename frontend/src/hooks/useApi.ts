@@ -575,3 +575,84 @@ export function useDeleteScheduledReport() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['scheduled-reports'] }),
   });
 }
+
+// Discounts
+export function useDiscounts() {
+  return useQuery({ queryKey: ['discounts'], queryFn: async () => { const { data } = await api.get('/discounts'); return data.data || data; } });
+}
+export function useCreateDiscount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: any) => { const { data } = await api.post('/discounts', d); return data.data || data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['discounts'] }),
+  });
+}
+export function useUpdateDiscount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: any) => { const { data } = await api.put(`/discounts/${id}`, d); return data.data || data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['discounts'] }),
+  });
+}
+export function useDeleteDiscount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => { await api.delete(`/discounts/${id}`); },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['discounts'] }),
+  });
+}
+
+// Branches
+export function useBranches() {
+  return useQuery({ queryKey: ['branches'], queryFn: async () => { const { data } = await api.get('/branches'); return data; } });
+}
+export function useCreateBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: any) => { const { data } = await api.post('/branches', d); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['branches'] }),
+  });
+}
+export function useUpdateBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: any) => { const { data } = await api.put(`/branches/${id}`, d); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['branches'] }),
+  });
+}
+export function useDeleteBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => { await api.delete(`/branches/${id}`); },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['branches'] }),
+  });
+}
+
+// Audit Logs (full list)
+export function useAuditLogs() {
+  return useQuery({ queryKey: ['audit-logs'], queryFn: async () => { const { data } = await api.get('/audit-log', { params: { limit: 500 } }); return data.data || data; } });
+}
+
+// Backups
+export function useBackups() {
+  return useQuery({ queryKey: ['backups'], queryFn: async () => { const { data } = await api.get('/backups'); return data; } });
+}
+export function useCreateBackup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => { const { data } = await api.post('/backups'); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['backups'] }),
+  });
+}
+export function useRestoreBackup() {
+  return useMutation({
+    mutationFn: async (name: string) => { const { data } = await api.post(`/backups/restore/${name}`); return data; },
+  });
+}
+export function useDeleteBackup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => { await api.delete(`/backups/${name}`); },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['backups'] }),
+  });
+}

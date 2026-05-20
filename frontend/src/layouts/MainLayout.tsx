@@ -25,6 +25,9 @@ import {
   Moon,
   Sun,
   Crown,
+  Tag,
+  Building2,
+  ScrollText,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { NotificationCenter } from '../components/NotificationCenter';
@@ -46,6 +49,9 @@ const allNavItems = [
   { to: '/suppliers', icon: Truck, label: 'Suppliers', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
   { to: '/cash-drawer', icon: DollarSign, label: 'Cash Drawer', roles: [] },
   { to: '/memberships', icon: Crown, label: 'Memberships', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+  { to: '/discounts', icon: Tag, label: 'Discounts', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+  { to: '/branches', icon: Building2, label: 'Branches', roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { to: '/audit-log', icon: ScrollText, label: 'Audit Log', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { to: '/settings', icon: Settings, label: 'Settings', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
 ];
 

@@ -26,6 +26,8 @@ import { supplierRouter } from './modules/suppliers/supplier.routes';
 import { appointmentRouter } from './modules/appointments/appointment.routes';
 import { membershipRouter } from './modules/memberships/membership.routes';
 import { taxRouter } from './modules/taxes/tax.routes';
+import { branchRouter } from './modules/branches/branch.routes';
+import { backupRouter } from './modules/backup/backup.routes';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -64,6 +66,9 @@ app.get('/api/health', (_, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+
 // Dev mode: proactive routing when DB is unavailable
 app.use(devRouter);
 
@@ -84,6 +89,8 @@ app.use('/api/suppliers', supplierRouter);
 app.use('/api/appointments', appointmentRouter);
 app.use('/api/memberships', membershipRouter);
 app.use('/api/taxes', taxRouter);
+app.use('/api/branches', branchRouter);
+app.use('/api/backups', backupRouter);
 app.use('/api/settings', settingRouter);
 
 // Error handling

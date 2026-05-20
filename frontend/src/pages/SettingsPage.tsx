@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt } from 'lucide-react';
-import { useSettings, useUpdateSetting, useChangePassword, useTaxes, useCreateTax, useUpdateTax, useDeleteTax } from '../hooks/useApi';
+import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2 } from 'lucide-react';
+import { useSettings, useUpdateSetting, useChangePassword, useTaxes, useCreateTax, useUpdateTax, useDeleteTax, useBackups, useCreateBackup, useRestoreBackup, useDeleteBackup } from '../hooks/useApi';
 import { useSettingsStore, type BusinessType } from '../store/settingsStore';
 import { useThemeStore } from '../store/themeStore';
 import { useI18nStore, localeNames, availableLocales } from '../store/i18nStore';
@@ -16,6 +16,7 @@ const sections = [
   { id: 'taxes', label: 'Tax Rates', icon: Receipt },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Security', icon: Shield },
+  { id: 'database', label: 'Database', icon: Database },
 ];
 
 export function SettingsPage() {
@@ -117,20 +118,50 @@ export function SettingsPage() {
 
             {activeSection === 'printing' && (
               <div className="space-y-4">
-                <h2 className="text-lg font-bold mb-4">Printing Settings</h2>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Receipt Paper Size</label>
-                  <select value={getValue('receiptPaperSize', '80mm')} onChange={e => setValue('receiptPaperSize', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm">
+                <h2 className="text-lg font-bold mb-4">Printing & Receipt Settings</h2>
+                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Receipt Paper Size</label>
+                  <select value={getValue('receiptPaperSize', '80mm')} onChange={e => setValue('receiptPaperSize', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
                     {['58mm', '80mm'].map(s => <option key={s}>{s}</option>)}
                   </select></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Printer Type</label>
-                  <select value={getValue('printerType', 'thermal')} onChange={e => setValue('printerType', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm">
+                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Printer Type</label>
+                  <select value={getValue('printerType', 'thermal')} onChange={e => setValue('printerType', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
                     {['thermal', 'inkjet', 'laser'].map(t => <option key={t}>{t}</option>)}
                   </select></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Receipt Header</label>
-                  <input value={getValue('receiptHeader')} onChange={e => setValue('receiptHeader', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Receipt Footer</label>
-                  <input value={getValue('receiptFooter')} onChange={e => setValue('receiptFooter', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
-                <button onClick={() => saveSection(['receiptPaperSize', 'printerType', 'receiptHeader', 'receiptFooter'], 'printing')}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Receipt Customization</h3>
+                  <div><label className="block text-xs text-gray-500 mb-1">Business Logo URL</label>
+                    <input value={getValue('receiptLogo')} onChange={e => setValue('receiptLogo', e.target.value)} placeholder="https://example.com/logo.png"
+                      className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600" />
+                    {getValue('receiptLogo') && <img src={getValue('receiptLogo')} alt="Logo preview" className="mt-2 h-12 object-contain" />}
+                  </div>
+                  <div><label className="block text-xs text-gray-500 mb-1">Receipt Header Text</label>
+                    <textarea rows={2} value={getValue('receiptHeader')} onChange={e => setValue('receiptHeader', e.target.value)} placeholder="Your Business Name&#10;123 Main St, City"
+                      className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600" /></div>
+                  <div><label className="block text-xs text-gray-500 mb-1">Receipt Footer Text</label>
+                    <textarea rows={2} value={getValue('receiptFooter')} onChange={e => setValue('receiptFooter', e.target.value)} placeholder="Thank you for your visit!&#10;Visit us at www.example.com"
+                      className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600" /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className="block text-xs text-gray-500 mb-1">Tax Label</label>
+                      <input value={getValue('receiptTaxLabel', 'Tax')} onChange={e => setValue('receiptTaxLabel', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600" /></div>
+                    <div><label className="block text-xs text-gray-500 mb-1">Currency Symbol Position</label>
+                      <select value={getValue('currencyPosition', 'before')} onChange={e => setValue('currencyPosition', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600">
+                        <option value="before">Before ($10)</option>
+                        <option value="after">After (10$)</option>
+                      </select></div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {['showLogo', 'showBarcode', 'showLoyaltyPoints'].map(key => (
+                      <label key={key} className="flex items-center gap-1.5 text-xs">
+                        <input type="checkbox" checked={getValue(key, 'true') === 'true'} onChange={e => setValue(key, e.target.checked ? 'true' : 'false')}
+                          className="rounded border-gray-300" />
+                        {key.replace('show', '').replace(/([A-Z])/g, ' $1').trim()}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={() => saveSection(['receiptPaperSize', 'printerType', 'receiptHeader', 'receiptFooter', 'receiptLogo', 'receiptTaxLabel', 'currencyPosition', 'showLogo', 'showBarcode', 'showLoyaltyPoints'], 'printing')}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700"><Save className="w-4 h-4" /> Save Changes</button>
               </div>
             )}
@@ -298,9 +329,68 @@ export function SettingsPage() {
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700"><Save className="w-4 h-4" /> Save Changes</button>
               </div>
             )}
+
+            {activeSection === 'database' && <DatabaseSection />}
           </motion.div>
         )}
       </div>
+    </div>
+  );
+}
+
+function DatabaseSection() {
+  const { data: backups, isLoading } = useBackups();
+  const createBackup = useCreateBackup();
+  const restoreBackup = useRestoreBackup();
+  const deleteBackup = useDeleteBackup();
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold mb-4">Database Management</h2>
+      <div className="flex gap-2">
+        <button onClick={() => createBackup.mutateAsync().then(() => toast.success('Backup created')).catch(() => toast.error('Backup failed'))}
+          disabled={createBackup.isPending}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm hover:bg-green-700 disabled:opacity-50">
+          <Download className="w-4 h-4" /> {createBackup.isPending ? 'Creating...' : 'Create Backup'}
+        </button>
+        <a href={`${(window as any).__API_URL || 'http://localhost:4000/api'}/backups/export`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700">
+          <Upload className="w-4 h-4" /> Export Database
+        </a>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />)}</div>
+      ) : (backups as any[])?.length === 0 ? (
+        <p className="text-sm text-gray-500 py-8 text-center">No backups yet. Create your first backup above.</p>
+      ) : (
+        <div className="space-y-2">
+          {(backups as any[])?.map((b: any) => (
+            <div key={b.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+              <div>
+                <p className="text-sm font-medium">{b.name}</p>
+                <p className="text-xs text-gray-500">{formatSize(b.size)} · {new Date(b.createdAt).toLocaleString()}</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => { if (confirm('Restore this backup? Current data will be backed up automatically.')) restoreBackup.mutateAsync(b.name).then(() => toast.success('Restored! Restart server to apply.')).catch(() => toast.error('Restore failed')); }}
+                  className="px-3 py-1.5 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200">
+                  Restore
+                </button>
+                <button onClick={() => { if (confirm('Delete this backup?')) deleteBackup.mutateAsync(b.name); }}
+                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

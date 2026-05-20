@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { DollarSign, ArrowUpCircle, ArrowDownCircle, Clock, Lock, Unlock, History } from 'lucide-react';
-import { useCashDrawerCurrent, useCashDrawerSessions, useOpenDrawer, useCloseDrawer, useCashTransaction } from '../hooks/useApi';
+import { DollarSign, ArrowUpCircle, ArrowDownCircle, Clock, Lock, Unlock, History, FileText, ClipboardCheck } from 'lucide-react';
+import { useCashDrawerCurrent, useCashDrawerSessions, useOpenDrawer, useCloseDrawer, useCashTransaction, useOrders } from '../hooks/useApi';
 import { formatCurrency } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -18,6 +18,50 @@ export function CashDrawerPage() {
   const [txAmount, setTxAmount] = useState('');
   const [txReason, setTxReason] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [showReport, setShowReport] = useState<'x' | 'z' | null>(null);
+  const { data: orders } = useOrders();
+
+  // Calculate report data
+  const todaysOrders = (orders || []).filter((o: any) => {
+    const d = new Date(o.createdAt); const t = new Date(); t.setHours(0,0,0,0);
+    return d >= t && o.status !== 'VOIDED' && o.status !== 'CANCELLED';
+  });
+  const totalSales = todaysOrders.reduce((s: number, o: any) => s + o.totalAmount, 0);
+  const totalTax = todaysOrders.reduce((s: number, o: any) => s + (o.taxAmount || 0), 0);
+  const paymentSummary = todaysOrders.flatMap((o: any) => o.payments || []).reduce((acc: Record<string, number>, p: any) => {
+    acc[p.method] = (acc[p.method] || 0) + p.amount; return acc;
+  }, {} as Record<string, number>);
+
+  const printReport = (type: 'x' | 'z') => {
+    const w = window.open('', '_blank', 'width=400,height=600');
+    if (!w) return;
+    w.document.write(`<html><head><title>${type.toUpperCase()}-Report</title>
+      <style>body{font-family:monospace;padding:20px;max-width:350px;margin:0 auto}
+      h1{text-align:center;border-bottom:2px solid #000;padding-bottom:10px}
+      .row{display:flex;justify-content:space-between;padding:4px 0}
+      .total{border-top:2px solid #000;font-weight:bold;margin-top:8px;padding-top:8px}
+      hr{border:1px dashed #ccc}</style></head><body>
+      <h1>${type.toUpperCase()}-REPORT</h1>
+      <p style="text-align:center">${new Date().toLocaleString()}</p>
+      <hr/>
+      <div class="row"><span>Total Orders:</span><span>${todaysOrders.length}</span></div>
+      <div class="row"><span>Gross Sales:</span><span>$${totalSales.toFixed(2)}</span></div>
+      <div class="row"><span>Tax Collected:</span><span>$${totalTax.toFixed(2)}</span></div>
+      <hr/>
+      <h3>Payment Breakdown</h3>
+      ${Object.entries(paymentSummary).map(([m, a]) => `<div class="row"><span>${m}:</span><span>$${(a as number).toFixed(2)}</span></div>`).join('')}
+      <hr/>
+      ${currentSession ? `
+        <h3>Cash Drawer</h3>
+        <div class="row"><span>Opening:</span><span>$${currentSession.openingBalance.toFixed(2)}</span></div>
+        <div class="row"><span>Cash Sales:</span><span>$${(paymentSummary['CASH'] || 0).toFixed(2)}</span></div>
+      ` : ''}
+      <div class="total row"><span>Net Sales:</span><span>$${totalSales.toFixed(2)}</span></div>
+      <p style="text-align:center;margin-top:20px;font-size:12px">${type === 'z' ? '*** END OF DAY ***' : '*** INTERIM REPORT ***'}</p>
+      </body></html>`);
+    w.document.close();
+    w.print();
+  };
 
   const handleOpen = async () => {
     try {
@@ -53,10 +97,20 @@ export function CashDrawerPage() {
           <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Cash Drawer</h1>
           <p className="text-gray-500 mt-1">Manage cash flow and drawer sessions</p>
         </div>
-        <button onClick={() => setShowHistory(!showHistory)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm font-medium hover:bg-gray-200">
-          <History className="w-4 h-4" /> {showHistory ? 'Current' : 'History'}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => printReport('x')}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-100" title="X-Report (interim)">
+            <FileText className="w-4 h-4" /> X-Report
+          </button>
+          <button onClick={() => printReport('z')}
+            className="flex items-center gap-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 rounded-xl text-sm font-medium hover:bg-purple-100" title="Z-Report (end of day)">
+            <ClipboardCheck className="w-4 h-4" /> Z-Report
+          </button>
+          <button onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm font-medium hover:bg-gray-200">
+            <History className="w-4 h-4" /> {showHistory ? 'Current' : 'History'}
+          </button>
+        </div>
       </div>
 
       {!showHistory ? (

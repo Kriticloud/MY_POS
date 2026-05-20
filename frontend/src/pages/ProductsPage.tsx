@@ -153,8 +153,21 @@ export function ProductsPage() {
                     <div><label className="block text-xs font-medium text-gray-500 mb-1">Duration (minutes)</label>
                       <input type="number" min="1" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} placeholder="e.g. 30" className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
                   )}
-                  <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Image URL</label>
-                    <input value={form.image} onChange={e => setForm({...form, image: e.target.value})} placeholder="https://example.com/image.jpg" className="w-full px-3 py-2 rounded-lg border text-sm" />
+                  <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Image</label>
+                    <div className="flex gap-2">
+                      <input value={form.image} onChange={e => setForm({...form, image: e.target.value})} placeholder="URL or upload below" className="flex-1 px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+                      <label className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-1">
+                        📁 Upload
+                        <input type="file" accept="image/*" className="hidden" onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) { toast.error('Max 5MB'); return; }
+                          const reader = new FileReader();
+                          reader.onload = () => setForm({...form, image: reader.result as string});
+                          reader.readAsDataURL(file);
+                        }} />
+                      </label>
+                    </div>
                     {form.image && <img src={form.image} alt="Preview" className="mt-2 w-20 h-20 object-cover rounded-lg" />}
                   </div>
                   <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Modifiers (JSON)</label>

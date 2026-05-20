@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Package, AlertTriangle, TrendingDown, RefreshCw, Search, Calendar } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Package, AlertTriangle, TrendingDown, RefreshCw, Search, Calendar, Bell } from 'lucide-react';
 import { useInventory, useInventoryAlerts, useUpdateInventory } from '../hooks/useApi';
 import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
@@ -13,6 +13,27 @@ export function InventoryPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editQty, setEditQty] = useState('');
   const [editMin, setEditMin] = useState('');
+  const notifiedRef = useRef(false);
+
+  // Low stock auto-notifications
+  useEffect(() => {
+    if (!inventory || notifiedRef.current) return;
+    const lowItems = (inventory as any[]).filter((i: any) => i.quantity <= (i.reorderPoint || i.minStock || 0) && i.quantity >= 0);
+    if (lowItems.length > 0) {
+      notifiedRef.current = true;
+      toast(`⚠️ ${lowItems.length} item${lowItems.length > 1 ? 's' : ''} below reorder point`, {
+        duration: 6000,
+        icon: '📦',
+        style: { background: '#FEF3C7', color: '#92400E', fontWeight: 500 },
+      });
+      // Browser notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Low Stock Alert', { body: `${lowItems.length} items need reordering`, icon: '/favicon.ico' });
+      } else if ('Notification' in window && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+    }
+  }, [inventory]);
 
   const filtered = useMemo(() => {
     let list = inventory || [];
