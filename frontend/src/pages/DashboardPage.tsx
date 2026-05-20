@@ -10,12 +10,14 @@ import { QuickActions } from '../components/QuickActions';
 import { ActivityFeed } from '../components/ActivityFeed';
 import { SimpleBarChart, SimpleDonutChart } from '../components/Charts';
 import { useMemo } from 'react';
+import { useI18nStore } from '../store/i18nStore';
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const businessType = useSettingsStore((s) => s.businessType);
   const config = getBusinessConfig(businessType);
   const labels = getEntityLabels(businessType);
+  const t = useI18nStore((s) => s.t);
   const { data: daily, isLoading: loadingDaily } = useDailySummary();
   const { data: salesData } = useSalesReport();
   const { data: ordersData, isLoading: loadingOrders } = useOrders();
@@ -51,17 +53,17 @@ export function DashboardPage() {
   const avgOrderValue = salesData?.averageOrderValue || 0;
 
   const stats = [
-    { label: 'Total Revenue', value: formatCurrency(totalRevenue), icon: DollarSign, change: totalRevenue > 0 ? `${totalOrders} orders` : 'No data', up: totalRevenue > 0, color: 'bg-blue-500' },
-    { label: `Today's ${labels.orders}`, value: String(todayOrders), icon: ShoppingBag, change: todayRevenue > 0 ? formatCurrency(todayRevenue) : 'No sales yet', up: todayOrders > 0, color: 'bg-green-500' },
-    { label: `Avg ${labels.order} Value`, value: formatCurrency(avgOrderValue), icon: TrendingUp, change: avgOrderValue > 0 ? 'Per order' : 'No data', up: avgOrderValue > 0, color: 'bg-amber-500' },
-    { label: `Total ${labels.orders}`, value: String(totalOrders), icon: Users, change: totalOrders > 0 ? 'All time' : 'No data', up: totalOrders > 0, color: 'bg-purple-500' },
+    { label: t('revenue'), value: formatCurrency(totalRevenue), icon: DollarSign, change: totalRevenue > 0 ? `${totalOrders} ${t('orders').toLowerCase()}` : t('noData'), up: totalRevenue > 0, color: 'bg-blue-500' },
+    { label: `${t('today')} ${labels.orders}`, value: String(todayOrders), icon: ShoppingBag, change: todayRevenue > 0 ? formatCurrency(todayRevenue) : t('noData'), up: todayOrders > 0, color: 'bg-green-500' },
+    { label: `${t('total')} ${labels.order}`, value: formatCurrency(avgOrderValue), icon: TrendingUp, change: avgOrderValue > 0 ? 'Per order' : t('noData'), up: avgOrderValue > 0, color: 'bg-amber-500' },
+    { label: `${t('total')} ${labels.orders}`, value: String(totalOrders), icon: Users, change: totalOrders > 0 ? 'All time' : t('noData'), up: totalOrders > 0, color: 'bg-purple-500' },
   ];
 
   const statusColor: Record<string, string> = {
-    COMPLETED: 'bg-green-100 text-green-700', CONFIRMED: 'bg-blue-100 text-blue-700',
-    PREPARING: 'bg-amber-100 text-amber-700', READY: 'bg-purple-100 text-purple-700',
-    PENDING: 'bg-gray-100 text-gray-700', CANCELLED: 'bg-red-100 text-red-700',
-    SERVED: 'bg-teal-100 text-teal-700',
+    COMPLETED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', CONFIRMED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    PREPARING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', READY: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    PENDING: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+    SERVED: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
   };
 
   return (

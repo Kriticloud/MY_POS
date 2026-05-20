@@ -186,11 +186,18 @@ export function SettingsPage() {
                   <select value={getValue('timezone', 'America/New_York')} onChange={e => setValue('timezone', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm">
                     {['America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Europe/London', 'Asia/Dubai', 'Asia/Kolkata'].map(t => <option key={t}>{t}</option>)}
                   </select></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Date Format</label>
-                  <select value={getValue('dateFormat', 'MM/DD/YYYY')} onChange={e => setValue('dateFormat', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm">
+                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Format</label>
+                  <select value={getValue('dateFormat', 'MM/DD/YYYY')} onChange={e => setValue('dateFormat', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
                     {['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'].map(f => <option key={f}>{f}</option>)}
                   </select></div>
-                <button onClick={() => saveSection(['language', 'timezone', 'dateFormat'], 'localization')}
+                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secondary Currency (optional)</label>
+                  <select value={getValue('secondaryCurrency', '')} onChange={e => setValue('secondaryCurrency', e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
+                    <option value="">None</option>
+                    {[['USD', '$ USD'], ['EUR', '€ EUR'], ['GBP', '£ GBP'], ['INR', '₹ INR'], ['AED', 'د.إ AED'], ['SAR', '﷼ SAR'], ['JPY', '¥ JPY'], ['CAD', '$ CAD'], ['AUD', '$ AUD'], ['BRL', 'R$ BRL'], ['MXN', '$ MXN'], ['CNY', '¥ CNY']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">Show approximate equivalent in a secondary currency on prices</p>
+                </div>
+                <button onClick={() => saveSection(['language', 'timezone', 'dateFormat', 'secondaryCurrency'], 'localization')}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700"><Save className="w-4 h-4" /> Save Changes</button>
               </div>
             )}

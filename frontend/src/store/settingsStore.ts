@@ -67,10 +67,28 @@ const localeMap: Record<string, string> = {
   AUD: 'en-AU', CAD: 'en-CA', BRL: 'pt-BR', MXN: 'es-MX',
 };
 
+// Exchange rates relative to USD (base currency in DB)
+const exchangeRates: Record<string, number> = {
+  USD: 1, EUR: 0.92, GBP: 0.79, INR: 83.5, AED: 3.67, SAR: 3.75,
+  JPY: 154.5, CNY: 7.24, AUD: 1.53, CAD: 1.36, BRL: 4.97, MXN: 17.2,
+};
+
+// All amounts in DB are stored in USD. This converts + formats to the selected currency.
 export function formatCurrency(amount: number, currencyOverride?: string): string {
   const currency = currencyOverride || useSettingsStore.getState().currency;
   const locale = localeMap[currency] || 'en-US';
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+  const rate = exchangeRates[currency] || 1;
+  const converted = amount * rate;
+  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(converted);
+}
+
+export function formatMultiCurrency(amount: number, secondaryCurrency?: string): string {
+  const primary = formatCurrency(amount);
+  if (!secondaryCurrency) return primary;
+  const primaryCurrency = useSettingsStore.getState().currency;
+  if (secondaryCurrency === primaryCurrency) return primary;
+  const secondary = formatCurrency(amount, secondaryCurrency);
+  return `${primary} (${secondary})`;
 }
 
 // ─── Business-type config ───────────────────────────────────────────────

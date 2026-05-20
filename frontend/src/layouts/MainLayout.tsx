@@ -33,26 +33,27 @@ import { useState, useMemo } from 'react';
 import { NotificationCenter } from '../components/NotificationCenter';
 import { CommandPalette } from '../components/CommandPalette';
 import { useThemeStore } from '../store/themeStore';
+import { useI18nStore } from '../store/i18nStore';
 
 const allNavItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: [] },
-  { to: '/pos', icon: ShoppingCart, label: 'POS', roles: [] },
-  { to: '/orders', icon: ClipboardList, label: 'Orders', roles: [] },
-  { to: '/tables', icon: UtensilsCrossed, label: 'Tables', roles: [] },
-  { to: '/kitchen', icon: ChefHat, label: 'Kitchen', roles: [] },
-  { to: '/products', icon: Package, label: 'Products', roles: [] },
-  { to: '/customers', icon: Users, label: 'Customers', roles: [] },
-  { to: '/appointments', icon: CalendarDays, label: 'Appointments', roles: [] },
-  { to: '/reports', icon: BarChart3, label: 'Reports', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'] },
-  { to: '/employees', icon: UserCog, label: 'Employees', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
-  { to: '/inventory', icon: Warehouse, label: 'Inventory', roles: [] },
-  { to: '/suppliers', icon: Truck, label: 'Suppliers', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
-  { to: '/cash-drawer', icon: DollarSign, label: 'Cash Drawer', roles: [] },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', i18nKey: 'dashboard', roles: [] },
+  { to: '/pos', icon: ShoppingCart, label: 'POS', i18nKey: 'pos', roles: [] },
+  { to: '/orders', icon: ClipboardList, label: 'Orders', i18nKey: 'orders', roles: [] },
+  { to: '/tables', icon: UtensilsCrossed, label: 'Tables', i18nKey: 'tables', roles: [] },
+  { to: '/kitchen', icon: ChefHat, label: 'Kitchen', i18nKey: 'kitchen', roles: [] },
+  { to: '/products', icon: Package, label: 'Products', i18nKey: 'products', roles: [] },
+  { to: '/customers', icon: Users, label: 'Customers', i18nKey: 'customers', roles: [] },
+  { to: '/appointments', icon: CalendarDays, label: 'Appointments', i18nKey: 'appointments', roles: [] },
+  { to: '/reports', icon: BarChart3, label: 'Reports', i18nKey: 'reports', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'] },
+  { to: '/employees', icon: UserCog, label: 'Employees', i18nKey: 'employees', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+  { to: '/inventory', icon: Warehouse, label: 'Inventory', i18nKey: 'inventory', roles: [] },
+  { to: '/suppliers', icon: Truck, label: 'Suppliers', i18nKey: 'suppliers', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+  { to: '/cash-drawer', icon: DollarSign, label: 'Cash Drawer', i18nKey: 'cashDrawer', roles: [] },
   { to: '/memberships', icon: Crown, label: 'Memberships', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
-  { to: '/discounts', icon: Tag, label: 'Discounts', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+  { to: '/discounts', icon: Tag, label: 'Discounts', i18nKey: 'discount', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
   { to: '/branches', icon: Building2, label: 'Branches', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { to: '/audit-log', icon: ScrollText, label: 'Audit Log', roles: ['SUPER_ADMIN', 'ADMIN'] },
-  { to: '/settings', icon: Settings, label: 'Settings', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+  { to: '/settings', icon: Settings, label: 'Settings', i18nKey: 'settings', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
 ];
 
 export function MainLayout() {
@@ -61,6 +62,7 @@ export function MainLayout() {
   const businessName = useSettingsStore((s) => s.businessName);
   const currency = useSettingsStore((s) => s.currency);
   const { theme, setTheme } = useThemeStore();
+  const t = useI18nStore((s) => s.t);
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -73,9 +75,9 @@ export function MainLayout() {
       .filter((item) => item.roles.length === 0 || item.roles.includes(userRole))
       .map((item) => ({
         ...item,
-        label: config.renamedLabels[item.to] || item.label,
+        label: config.renamedLabels[item.to] || (item.i18nKey ? t(item.i18nKey) : item.label),
       }));
-  }, [businessType, user?.role]);
+  }, [businessType, user?.role, t]);
 
   const handleLogout = () => {
     logout();
