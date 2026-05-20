@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { Users, Clock, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { useTables, useUpdateTableStatus } from '../hooks/useApi';
+import { Users, Clock, AlertCircle, CheckCircle, X, ArrowRightLeft, Merge } from 'lucide-react';
+import { useTables, useUpdateTableStatus, useTransferTable, useMergeTables } from '../hooks/useApi';
 import { Skeleton } from '../components/ui/Skeleton';
 import { formatCurrency } from '../utils/helpers';
 import toast from 'react-hot-toast';
@@ -17,7 +17,11 @@ const statusConfig: Record<string, { bg: string; text: string; icon: any; dot: s
 export function TablesPage() {
   const { data: tables, isLoading } = useTables();
   const updateStatus = useUpdateTableStatus();
+  const transferTable = useTransferTable();
+  const mergeTables = useMergeTables();
   const [selected, setSelected] = useState<any>(null);
+  const [transferTarget, setTransferTarget] = useState('');
+  const [mergeTarget, setMergeTarget] = useState('');
   const businessType = useSettingsStore((s) => s.businessType);
   const pageInfo = getPageTitle('/tables', businessType);
   const labels = getEntityLabels(businessType);
@@ -106,6 +110,54 @@ export function TablesPage() {
                 </button>
               ))}
             </div>
+
+            {/* Transfer & Merge */}
+            {selected.status === 'OCCUPIED' && (
+              <div className="mt-4 space-y-3 border-t pt-3">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transfer to</p>
+                  <div className="flex gap-2">
+                    <select value={transferTarget} onChange={e => setTransferTarget(e.target.value)}
+                      className="flex-1 px-2 py-1.5 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
+                      <option value="">Select table...</option>
+                      {(tables || []).filter((t: any) => t.id !== selected.id && t.status === 'AVAILABLE').map((t: any) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <button onClick={async () => {
+                      if (!transferTarget) return;
+                      try {
+                        await transferTable.mutateAsync({ id: selected.id, targetTableId: transferTarget });
+                        toast.success('Orders transferred'); setSelected(null); setTransferTarget('');
+                      } catch { toast.error('Transfer failed'); }
+                    }} disabled={!transferTarget} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-50">
+                      Transfer
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1"><Merge className="w-3 h-3" /> Merge with</p>
+                  <div className="flex gap-2">
+                    <select value={mergeTarget} onChange={e => setMergeTarget(e.target.value)}
+                      className="flex-1 px-2 py-1.5 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
+                      <option value="">Select table...</option>
+                      {(tables || []).filter((t: any) => t.id !== selected.id && t.status === 'OCCUPIED').map((t: any) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <button onClick={async () => {
+                      if (!mergeTarget) return;
+                      try {
+                        await mergeTables.mutateAsync({ id: mergeTarget, targetTableId: selected.id });
+                        toast.success('Tables merged'); setSelected(null); setMergeTarget('');
+                      } catch { toast.error('Merge failed'); }
+                    }} disabled={!mergeTarget} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm disabled:opacity-50">
+                      Merge
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

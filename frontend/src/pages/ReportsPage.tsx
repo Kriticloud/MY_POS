@@ -1,11 +1,14 @@
 import { useState, useMemo } from 'react';
 import { formatCurrency } from '../utils/helpers';
-import { BarChart3, TrendingUp, ShoppingBag, DollarSign, Download, Users, Calendar, Percent } from 'lucide-react';
-import { useSalesReport, useTopProducts, useOrders, useStaffPerformance, useMarginReport } from '../hooks/useApi';
+import { BarChart3, TrendingUp, ShoppingBag, DollarSign, Download, Users, Calendar, Percent, FileText, Clock, Play, Trash2 } from 'lucide-react';
+import { useSalesReport, useTopProducts, useOrders, useStaffPerformance, useMarginReport, useScheduledReports, useCreateScheduledReport, useRunScheduledReport, useDeleteScheduledReport } from '../hooks/useApi';
+import { useSettingsStore } from '../store/settingsStore';
 import { Skeleton } from '../components/ui/Skeleton';
+import { SimpleBarChart, SimpleDonutChart } from '../components/Charts';
+import { exportOrdersReport } from '../services/pdfExport';
 import toast from 'react-hot-toast';
 
-type ReportTab = 'overview' | 'products' | 'staff' | 'margins';
+type ReportTab = 'overview' | 'products' | 'staff' | 'margins' | 'scheduled';
 
 export function ReportsPage() {
   const [tab, setTab] = useState<ReportTab>('overview');
@@ -26,6 +29,7 @@ export function ReportsPage() {
   const { data: orders } = useOrders();
   const { data: staffPerf } = useStaffPerformance();
   const { data: margins } = useMarginReport();
+  const businessName = useSettingsStore((s) => s.businessName);
 
   const paymentBreakdown = (orders || []).reduce((acc: Record<string, number>, o: any) => {
     (o.payments || []).forEach((p: any) => { acc[p.method] = (acc[p.method] || 0) + p.amount; }); return acc;
@@ -65,6 +69,10 @@ export function ReportsPage() {
         )} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
           <Download className="w-4 h-4" /> Export CSV
         </button>
+        <button onClick={() => exportOrdersReport(orders || [], businessName)}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700">
+          <FileText className="w-4 h-4" /> PDF Report
+        </button>
       </div>
 
       {/* Date Range Picker */}
@@ -87,7 +95,7 @@ export function ReportsPage() {
 
       {/* Report Tabs */}
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
-        {([{ key: 'overview', label: 'Overview' }, { key: 'products', label: 'Products' }, { key: 'staff', label: 'Staff Performance' }, { key: 'margins', label: 'Margins' }] as const).map(t => (
+        {([{ key: 'overview', label: 'Overview' }, { key: 'products', label: 'Products' }, { key: 'staff', label: 'Staff Performance' }, { key: 'margins', label: 'Margins' }, { key: 'scheduled', label: 'Scheduled' }] as const).map(t => (
           <button key={t.key} onClick={() => setTab(t.key as ReportTab)}
             className={`flex-1 py-2 rounded-lg text-sm font-medium ${tab === t.key ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>
             {t.label}
@@ -112,22 +120,43 @@ export function ReportsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card">
             <div className="p-5 border-b border-gray-100 dark:border-gray-700"><h2 className="font-semibold">Payment Methods</h2></div>
-            <div className="p-5 space-y-3">
-              {Object.entries(paymentBreakdown).map(([method, amount]) => (
-                <div key={method} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3"><span className="w-3 h-3 rounded-full bg-blue-500" /><span className="text-sm font-medium">{method}</span></div>
-                  <div className="text-right"><p className="text-sm font-medium">{formatCurrency(amount as number)}</p><p className="text-xs text-gray-500">{totalPayments > 0 ? Math.round(((amount as number) / totalPayments) * 100) : 0}%</p></div>
+            <div className="p-5">
+              {Object.keys(paymentBreakdown).length > 0 ? (
+                <div className="flex items-center justify-center gap-6">
+                  <SimpleDonutChart
+                    data={Object.entries(paymentBreakdown).map(([label, value]) => ({
+                      label, value: value as number,
+                      color: { CASH: '#10B981', CARD: '#3B82F6', UPI: '#8B5CF6', WALLET: '#F59E0B' }[label] || '#6B7280',
+                    }))}
+                    centerValue={formatCurrency(totalPayments)}
+                    centerLabel="Total"
+                  />
+                  <div className="space-y-2">
+                    {Object.entries(paymentBreakdown).map(([method, amount]) => (
+                      <div key={method} className="flex items-center gap-2 text-sm">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: { CASH: '#10B981', CARD: '#3B82F6', UPI: '#8B5CF6', WALLET: '#F59E0B' }[method] || '#6B7280' }} />
+                        <span className="text-gray-600 dark:text-gray-300">{method}</span>
+                        <span className="font-medium ml-auto">{formatCurrency(amount as number)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-              {Object.keys(paymentBreakdown).length === 0 && <p className="text-sm text-gray-400 text-center">No data</p>}
+              ) : <p className="text-sm text-gray-400 text-center py-8">No data</p>}
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card">
             <div className="p-5 border-b border-gray-100 dark:border-gray-700"><h2 className="font-semibold">Order Types</h2></div>
-            <div className="p-5 space-y-3">
-              {Object.entries(orderTypeBreakdown).map(([type, count]) => (
-                <div key={type} className="flex items-center justify-between"><span className="text-sm font-medium">{type.replace('_', ' ')}</span><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium">{count as number} orders</span></div>
-              ))}
+            <div className="p-5">
+              {Object.keys(orderTypeBreakdown).length > 0 ? (
+                <SimpleBarChart
+                  data={Object.entries(orderTypeBreakdown).map(([label, value], i) => ({
+                    label: label.replace('_', ' '),
+                    value: value as number,
+                    color: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'][i % 6],
+                  }))}
+                  height={180}
+                />
+              ) : <p className="text-sm text-gray-400 text-center py-8">No data</p>}
             </div>
           </div>
         </div>
@@ -217,6 +246,78 @@ export function ReportsPage() {
           </div>
         </div>
       )}
+
+      {tab === 'scheduled' && <ScheduledReportsTab />}
+    </div>
+  );
+}
+
+function ScheduledReportsTab() {
+  const { data: reports } = useScheduledReports();
+  const createReport = useCreateScheduledReport();
+  const runReport = useRunScheduledReport();
+  const deleteReport = useDeleteScheduledReport();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', type: 'DAILY_SALES', schedule: '0 8 * * *', recipients: '' });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold flex items-center gap-2"><Clock className="w-5 h-5" /> Scheduled Reports</h2>
+        <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
+          + New Schedule
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-5 space-y-3">
+          <input placeholder="Report Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+          <div className="grid grid-cols-3 gap-3">
+            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
+              className="px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
+              <option value="DAILY_SALES">Daily Sales</option>
+              <option value="WEEKLY_SUMMARY">Weekly Summary</option>
+              <option value="MONTHLY_REPORT">Monthly Report</option>
+              <option value="LOW_STOCK_ALERT">Low Stock Alert</option>
+            </select>
+            <input placeholder="Cron (0 8 * * *)" value={form.schedule} onChange={e => setForm({ ...form, schedule: e.target.value })}
+              className="px-3 py-2 rounded-lg border text-sm font-mono dark:bg-gray-700 dark:border-gray-600" />
+            <input placeholder="email1@test.com, email2@test.com" value={form.recipients} onChange={e => setForm({ ...form, recipients: e.target.value })}
+              className="px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+          </div>
+          <button onClick={async () => {
+            if (!form.name || !form.recipients) return;
+            await createReport.mutateAsync({ ...form, recipients: form.recipients.split(',').map(e => e.trim()), enabled: true });
+            setForm({ name: '', type: 'DAILY_SALES', schedule: '0 8 * * *', recipients: '' });
+            setShowForm(false); toast.success('Scheduled report created');
+          }} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">Create</button>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {(reports || []).map((r: any) => (
+          <div key={r.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">{r.name}</p>
+              <p className="text-xs text-gray-500">{r.type} • {r.schedule} • {r.recipients?.join(', ')}</p>
+              {r.lastRun && <p className="text-xs text-green-600">Last run: {new Date(r.lastRun).toLocaleString()}</p>}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={async () => { await runReport.mutateAsync(r.id); toast.success('Report sent'); }}
+                className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Run now"><Play className="w-4 h-4" /></button>
+              <button onClick={async () => { await deleteReport.mutateAsync(r.id); toast.success('Deleted'); }}
+                className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100" title="Delete"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          </div>
+        ))}
+        {(reports || []).length === 0 && (
+          <div className="text-center py-8 text-gray-400">
+            <Clock className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p>No scheduled reports yet</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

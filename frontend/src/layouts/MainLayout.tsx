@@ -24,6 +24,7 @@ import {
   DollarSign,
   Moon,
   Sun,
+  Crown,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { NotificationCenter } from '../components/NotificationCenter';
@@ -44,6 +45,7 @@ const allNavItems = [
   { to: '/inventory', icon: Warehouse, label: 'Inventory', roles: [] },
   { to: '/suppliers', icon: Truck, label: 'Suppliers', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
   { to: '/cash-drawer', icon: DollarSign, label: 'Cash Drawer', roles: [] },
+  { to: '/memberships', icon: Crown, label: 'Memberships', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
   { to: '/settings', icon: Settings, label: 'Settings', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
 ];
 

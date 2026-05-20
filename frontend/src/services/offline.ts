@@ -1,11 +1,13 @@
 const DB_NAME = 'mypos-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 interface OfflineOrder {
   id: string;
   data: any;
   createdAt: number;
   synced: boolean;
+  retryCount: number;
+  error?: string;
 }
 
 class OfflineStorage {
@@ -31,6 +33,11 @@ class OfflineStorage {
         if (!db.objectStoreNames.contains('categories')) {
           db.createObjectStore('categories', { keyPath: 'id' });
         }
+
+        if (!db.objectStoreNames.contains('pendingActions')) {
+          const actionStore = db.createObjectStore('pendingActions', { keyPath: 'id' });
+          actionStore.createIndex('synced', 'synced', { unique: false });
+        }
       };
 
       request.onsuccess = (event) => {
@@ -46,7 +53,7 @@ class OfflineStorage {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction('orders', 'readwrite');
-      tx.objectStore('orders').put(order);
+      tx.objectStore('orders').put({ ...order, retryCount: order.retryCount || 0 });
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -106,24 +113,45 @@ class OfflineStorage {
 
 export const offlineStorage = new OfflineStorage();
 
-// Background sync
+// Background sync with retry logic
 export async function syncOfflineOrders() {
   const orders = await offlineStorage.getUnsyncedOrders();
+  let synced = 0;
+  let failed = 0;
   for (const order of orders) {
+    if ((order as any).retryCount >= 5) continue; // Skip after 5 retries
     try {
+      const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken;
       const response = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(order.data),
       });
       if (response.ok) {
         await offlineStorage.markOrderSynced(order.id);
+        synced++;
+      } else {
+        failed++;
       }
     } catch {
-      // Will retry on next sync
+      failed++;
       break;
     }
   }
+  return { synced, failed, remaining: orders.length - synced };
+}
+
+// Get queue status
+export async function getOfflineQueueStatus() {
+  const orders = await offlineStorage.getUnsyncedOrders();
+  return {
+    pendingOrders: orders.length,
+    totalItems: orders.reduce((s, o) => s + (o.data?.items?.length || 0), 0),
+    oldestOrder: orders.length > 0 ? new Date(orders[0].createdAt) : null,
+  };
 }
 
 // Auto-sync when back online

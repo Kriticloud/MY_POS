@@ -490,3 +490,88 @@ export function useResetPassword() {
     mutationFn: async (email: string) => { const { data } = await api.post('/auth/reset-password', { email }); return data.data; },
   });
 }
+
+// Memberships
+export function useMemberships() {
+  return useQuery({ queryKey: ['memberships'], queryFn: async () => { const { data } = await api.get('/memberships'); return data; } });
+}
+export function useCreateMembership() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: any) => { const { data } = await api.post('/memberships', d); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['memberships'] }),
+  });
+}
+export function useUpdateMembership() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: any) => { const { data } = await api.put(`/memberships/${id}`, d); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['memberships'] }),
+  });
+}
+export function useDeleteMembership() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => { const { data } = await api.delete(`/memberships/${id}`); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['memberships'] }),
+  });
+}
+export function useAssignMembership() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ membershipId, customerId }: { membershipId: string; customerId: string }) => { const { data } = await api.post(`/memberships/${membershipId}/assign`, { customerId }); return data; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['memberships'] }); qc.invalidateQueries({ queryKey: ['customers'] }); },
+  });
+}
+
+// Taxes
+export function useTaxes() {
+  return useQuery({ queryKey: ['taxes'], queryFn: async () => { const { data } = await api.get('/taxes'); return data; } });
+}
+export function useCreateTax() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: any) => { const { data } = await api.post('/taxes', d); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['taxes'] }),
+  });
+}
+export function useUpdateTax() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: any) => { const { data } = await api.put(`/taxes/${id}`, d); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['taxes'] }),
+  });
+}
+export function useDeleteTax() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => { const { data } = await api.delete(`/taxes/${id}`); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['taxes'] }),
+  });
+}
+
+// Scheduled Reports
+export function useScheduledReports() {
+  return useQuery({ queryKey: ['scheduled-reports'], queryFn: async () => { const { data } = await api.get('/reports/scheduled'); return data; } });
+}
+export function useCreateScheduledReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: any) => { const { data } = await api.post('/reports/scheduled', d); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['scheduled-reports'] }),
+  });
+}
+export function useRunScheduledReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => { const { data } = await api.post(`/reports/scheduled/${id}/run`); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['scheduled-reports'] }),
+  });
+}
+export function useDeleteScheduledReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => { const { data } = await api.delete(`/reports/scheduled/${id}`); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['scheduled-reports'] }),
+  });
+}

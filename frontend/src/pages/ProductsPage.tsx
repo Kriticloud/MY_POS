@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit, Trash2, Package, X } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, X, Barcode } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 import { useProducts, useCategories, useCreateProduct, useUpdateProduct, useDeleteProduct } from '../hooks/useApi';
 import { useSettingsStore, getPageTitle, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
 import { Skeleton } from '../components/ui/Skeleton';
+import { printBarcodeLabel } from '../services/escpos';
 import toast from 'react-hot-toast';
 
-const emptyForm = { name: '', slug: '', price: '', costPrice: '', sku: '', barcode: '', description: '', categoryId: '', taxRate: '8.5', unit: 'piece', duration: '' };
+const emptyForm = { name: '', slug: '', price: '', costPrice: '', sku: '', barcode: '', description: '', categoryId: '', taxRate: '8.5', unit: 'piece', duration: '', image: '', modifiers: '', variants: '' };
 
 export function ProductsPage() {
   const [search, setSearch] = useState('');
@@ -29,13 +30,16 @@ export function ProductsPage() {
 
   const openNew = () => { setForm(emptyForm); setEditing(null); setShowForm(true); };
   const openEdit = (p: any) => {
-    setForm({ name: p.name, slug: p.slug, price: String(p.price), costPrice: String(p.costPrice || ''), sku: p.sku || '', barcode: p.barcode || '', description: p.description || '', categoryId: p.categoryId || '', taxRate: String(p.taxRate || 8.5), unit: p.unit || 'piece', duration: String(p.duration || '') });
+    setForm({ name: p.name, slug: p.slug, price: String(p.price), costPrice: String(p.costPrice || ''), sku: p.sku || '', barcode: p.barcode || '', description: p.description || '', categoryId: p.categoryId || '', taxRate: String(p.taxRate || 8.5), unit: p.unit || 'piece', duration: String(p.duration || ''), image: p.image || '', modifiers: p.modifiers ? JSON.stringify(p.modifiers) : '', variants: p.variants ? JSON.stringify(p.variants) : '' });
     setEditing(p); setShowForm(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { ...form, price: parseFloat(form.price), costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined, taxRate: parseFloat(form.taxRate), slug: form.slug || form.name.toLowerCase().replace(/\s+/g, '-'), businessType, duration: form.duration ? parseInt(form.duration) : undefined };
+    let modifiers, variants;
+    try { modifiers = form.modifiers ? JSON.parse(form.modifiers) : undefined; } catch { toast.error('Invalid modifiers JSON'); return; }
+    try { variants = form.variants ? JSON.parse(form.variants) : undefined; } catch { toast.error('Invalid variants JSON'); return; }
+    const data = { ...form, price: parseFloat(form.price), costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined, taxRate: parseFloat(form.taxRate), slug: form.slug || form.name.toLowerCase().replace(/\s+/g, '-'), businessType, duration: form.duration ? parseInt(form.duration) : undefined, image: form.image || undefined, modifiers, variants };
     try {
       if (editing) { await updateProduct.mutateAsync({ id: editing.id, ...data }); toast.success('Product updated'); }
       else { await createProduct.mutateAsync(data); toast.success('Product created'); }
@@ -100,6 +104,7 @@ export function ProductsPage() {
                     <td className="p-4 text-sm text-gray-500">{p.costPrice ? formatCurrency(p.costPrice) : '-'}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-1">
+                        <button onClick={() => printBarcodeLabel({ name: p.name, barcode: p.barcode, sku: p.sku, price: p.price })} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" title="Print barcode"><Barcode className="w-4 h-4 text-gray-500" /></button>
                         <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><Edit className="w-4 h-4 text-gray-500" /></button>
                         <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 text-red-400" /></button>
                       </div>
@@ -148,6 +153,14 @@ export function ProductsPage() {
                     <div><label className="block text-xs font-medium text-gray-500 mb-1">Duration (minutes)</label>
                       <input type="number" min="1" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} placeholder="e.g. 30" className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
                   )}
+                  <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Image URL</label>
+                    <input value={form.image} onChange={e => setForm({...form, image: e.target.value})} placeholder="https://example.com/image.jpg" className="w-full px-3 py-2 rounded-lg border text-sm" />
+                    {form.image && <img src={form.image} alt="Preview" className="mt-2 w-20 h-20 object-cover rounded-lg" />}
+                  </div>
+                  <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Modifiers (JSON)</label>
+                    <textarea rows={2} value={form.modifiers} onChange={e => setForm({...form, modifiers: e.target.value})} placeholder='[{"name":"Size","options":[{"label":"Small","price":0},{"label":"Large","price":2}]}]' className="w-full px-3 py-2 rounded-lg border text-sm font-mono text-xs" /></div>
+                  <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Variants (JSON)</label>
+                    <textarea rows={2} value={form.variants} onChange={e => setForm({...form, variants: e.target.value})} placeholder='[{"name":"Red","sku":"PROD-RED","price":15.99}]' className="w-full px-3 py-2 rounded-lg border text-sm font-mono text-xs" /></div>
                 </div>
                 <button type="submit" disabled={createProduct.isPending || updateProduct.isPending}
                   className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">

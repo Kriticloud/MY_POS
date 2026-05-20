@@ -18,6 +18,7 @@ import { InventoryPage } from './pages/InventoryPage';
 import { AppointmentsPage } from './pages/AppointmentsPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { CashDrawerPage } from './pages/CashDrawerPage';
+import { MembershipsPage } from './pages/MembershipsPage';
 import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 import { useWebSocket } from './hooks/useWebSocket';
 
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="suppliers" element={<SuppliersPage />} />
         <Route path="cash-drawer" element={<CashDrawerPage />} />
+        <Route path="memberships" element={<MembershipsPage />} />
       </Route>
     </Routes>
   );

@@ -24,6 +24,8 @@ import { discountRouter } from './modules/discounts/discount.routes';
 import { cashDrawerRouter } from './modules/cash-drawer/cashDrawer.routes';
 import { supplierRouter } from './modules/suppliers/supplier.routes';
 import { appointmentRouter } from './modules/appointments/appointment.routes';
+import { membershipRouter } from './modules/memberships/membership.routes';
+import { taxRouter } from './modules/taxes/tax.routes';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -80,6 +82,8 @@ app.use('/api/discounts', discountRouter);
 app.use('/api/cash-drawer', cashDrawerRouter);
 app.use('/api/suppliers', supplierRouter);
 app.use('/api/appointments', appointmentRouter);
+app.use('/api/memberships', membershipRouter);
+app.use('/api/taxes', taxRouter);
 app.use('/api/settings', settingRouter);
 
 // Error handling

@@ -24,6 +24,9 @@ export function POSPage() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [lastOrderData, setLastOrderData] = useState<any>(null);
+  const [showCardEntry, setShowCardEntry] = useState(false);
+  const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvv: '', name: '' });
+  const [cardProcessing, setCardProcessing] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState('');
   const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
@@ -138,6 +141,8 @@ export function POSPage() {
       toast.error(`Split payments (${formatCurrency(splitTotal)}) must equal total (${formatCurrency(finalTotal)})`);
       return;
     }
+    const hasCard = splitPayments.some(p => p.method === 'CARD');
+    if (hasCard && !showCardEntry) { setShowCardEntry(true); return; }
     try {
       const payments = splitPayments.length === 1
         ? [{ method: splitPayments[0].method, amount: finalTotal }]
@@ -171,6 +176,17 @@ export function POSPage() {
   const applyDiscount = () => {
     const val = parseFloat(discountInput);
     if (!isNaN(val) && val >= 0) { cart.setDiscount(val); setShowDiscount(false); setDiscountInput(''); toast.success(`Discount of ${formatCurrency(val)} applied`); }
+  };
+
+  const processCardPayment = async () => {
+    if (!cardForm.number || !cardForm.expiry || !cardForm.cvv) { toast.error('Fill all card fields'); return; }
+    setCardProcessing(true);
+    // Simulate payment gateway processing
+    await new Promise(r => setTimeout(r, 2000));
+    setCardProcessing(false);
+    setShowCardEntry(false);
+    toast.success('Card payment authorized');
+    handleCheckout();
   };
 
   // Hold/Park order
@@ -652,6 +668,51 @@ export function POSPage() {
                   className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all text-sm flex items-center justify-center gap-2">
                   <Printer className="w-4 h-4" /> Print Receipt
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Card Payment Modal */}
+      <AnimatePresence>
+        {showCardEntry && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold flex items-center gap-2"><CreditCard className="w-5 h-5 text-blue-600" /> Card Payment</h2>
+                <button onClick={() => setShowCardEntry(false)}><X className="w-5 h-5" /></button>
+              </div>
+              <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-xl p-4 mb-4 text-white">
+                <p className="text-xs opacity-70">Amount to charge</p>
+                <p className="text-2xl font-bold">{formatCurrency(total - loyaltyDiscount)}</p>
+                <p className="text-xs mt-2 font-mono tracking-wider">{cardForm.number || '•••• •••• •••• ••••'}</p>
+              </div>
+              <div className="space-y-3">
+                <input placeholder="Card Number" maxLength={19} value={cardForm.number}
+                  onChange={e => setCardForm({ ...cardForm, number: e.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim() })}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm font-mono dark:bg-gray-700 dark:border-gray-600" />
+                <div className="flex gap-3">
+                  <input placeholder="MM/YY" maxLength={5} value={cardForm.expiry}
+                    onChange={e => { let v = e.target.value.replace(/\D/g, ''); if (v.length >= 2) v = v.slice(0, 2) + '/' + v.slice(2); setCardForm({ ...cardForm, expiry: v }); }}
+                    className="flex-1 px-3 py-2.5 rounded-lg border text-sm font-mono dark:bg-gray-700 dark:border-gray-600" />
+                  <input placeholder="CVV" maxLength={4} type="password" value={cardForm.cvv}
+                    onChange={e => setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, '') })}
+                    className="w-24 px-3 py-2.5 rounded-lg border text-sm font-mono dark:bg-gray-700 dark:border-gray-600" />
+                </div>
+                <input placeholder="Cardholder Name" value={cardForm.name}
+                  onChange={e => setCardForm({ ...cardForm, name: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+                <button onClick={processCardPayment} disabled={cardProcessing}
+                  className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {cardProcessing ? (
+                    <><span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" /> Processing...</>
+                  ) : (
+                    <><CreditCard className="w-4 h-4" /> Pay {formatCurrency(total - loyaltyDiscount)}</>
+                  )}
+                </button>
+                <p className="text-xs text-center text-gray-400">🔒 Secure payment processed by Stripe (Mock)</p>
               </div>
             </motion.div>
           </motion.div>

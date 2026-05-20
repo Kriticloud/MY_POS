@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { useOrders, useUpdateOrderStatus, useVoidOrder } from '../hooks/useApi';
-import { Search, Filter, Eye, X, ChevronDown, Ban, RotateCcw } from 'lucide-react';
+import { useOrders, useUpdateOrderStatus, useVoidOrder, useSplitBill } from '../hooks/useApi';
+import { Search, Filter, Eye, X, ChevronDown, Ban, RotateCcw, Scissors } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
@@ -30,6 +30,26 @@ export function OrdersPage() {
   const { data: orders, isLoading } = useOrders(statusFilter !== 'ALL' ? { status: statusFilter } : undefined);
   const updateStatus = useUpdateOrderStatus();
   const voidOrder = useVoidOrder();
+  const splitBill = useSplitBill();
+  const [showSplit, setShowSplit] = useState(false);
+  const [splitSelections, setSplitSelections] = useState<Record<string, number>>({});
+
+  const handleSplitBill = async () => {
+    if (!selectedOrder) return;
+    const items = selectedOrder.items || [];
+    // Group selected items into split 1 (selected) and split 2 (rest)
+    const split1Items = items.filter((_: any, i: number) => splitSelections[i] === 1).map((it: any) => it.id);
+    const split2Items = items.filter((_: any, i: number) => splitSelections[i] !== 1).map((it: any) => it.id);
+    if (split1Items.length === 0 || split2Items.length === 0) { toast.error('Select items for each split'); return; }
+    try {
+      await splitBill.mutateAsync({ id: selectedOrder.id, splits: [
+        { itemIds: split1Items, paymentMethod: 'CASH' },
+        { itemIds: split2Items, paymentMethod: 'CASH' },
+      ] });
+      toast.success('Bill split successfully');
+      setSelectedOrder(null); setShowSplit(false); setSplitSelections({});
+    } catch { toast.error('Failed to split bill'); }
+  };
 
   const handleVoid = async (orderId: string) => {
     const reason = prompt('Enter reason for voiding this order:');
@@ -198,7 +218,30 @@ export function OrdersPage() {
                       <RotateCcw className="w-4 h-4" /> Refund
                     </button>
                   )}
+                  {!['VOIDED', 'REFUNDED', 'CANCELLED', 'COMPLETED'].includes(selectedOrder.status) && selectedOrder.items?.length > 1 && (
+                    <button onClick={() => { setShowSplit(!showSplit); setSplitSelections({}); }}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-purple-50 text-purple-600 rounded-xl font-medium hover:bg-purple-100 border border-purple-200">
+                      <Scissors className="w-4 h-4" /> Split Bill
+                    </button>
+                  )}
                 </div>
+
+                {/* Split Bill UI */}
+                {showSplit && (
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 space-y-2">
+                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Click items to assign to Split 1 (unselected = Split 2)</p>
+                    {(selectedOrder.items || []).map((item: any, i: number) => (
+                      <button key={i} onClick={() => setSplitSelections(prev => ({ ...prev, [i]: prev[i] === 1 ? 0 : 1 }))}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm flex justify-between ${splitSelections[i] === 1 ? 'bg-purple-200 dark:bg-purple-800 font-medium' : 'bg-white dark:bg-gray-700'}`}>
+                        <span>{item.product?.name || 'Item'} x{item.quantity}</span>
+                        <span>{splitSelections[i] === 1 ? 'Split 1' : 'Split 2'}</span>
+                      </button>
+                    ))}
+                    <button onClick={handleSplitBill} className="w-full py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700">
+                      Confirm Split
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
