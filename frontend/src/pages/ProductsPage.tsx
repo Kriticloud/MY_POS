@@ -16,8 +16,8 @@ export function ProductsPage() {
   const [form, setForm] = useState(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { data: products, isLoading } = useProducts({ search: search || undefined });
-  const { data: categories } = useCategories();
+  const { data: products, isLoading } = useProducts({ search: search || undefined, businessType });
+  const { data: categories } = useCategories({ businessType });
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();

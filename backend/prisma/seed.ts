@@ -168,6 +168,147 @@ async function main() {
     await prisma.product.create({ data: { ...data, businessType: 'SALON', categoryId: salonCats[catSlug].id, branchId: branch.id } });
   }
 
+  // ═══ CAFE categories & products ═══
+  const cafeCats: Record<string, any> = {};
+  const cafeCatData = [
+    { name: 'Hot Drinks', slug: 'hot-drinks', icon: '☕', color: '#8B5CF6', sortOrder: 1 },
+    { name: 'Cold Drinks', slug: 'cold-drinks', icon: '🧊', color: '#3B82F6', sortOrder: 2 },
+    { name: 'Pastries', slug: 'pastries', icon: '🥐', color: '#F59E0B', sortOrder: 3 },
+    { name: 'Sandwiches', slug: 'sandwiches', icon: '🥪', color: '#22C55E', sortOrder: 4 },
+    { name: 'Cakes', slug: 'cakes', icon: '🍰', color: '#EC4899', sortOrder: 5 },
+  ];
+  for (const c of cafeCatData) {
+    cafeCats[c.slug] = await prisma.category.create({ data: { ...c, businessType: 'CAFE', branchId: branch.id } });
+  }
+  const cafeProds = [
+    { name: 'Americano', slug: 'americano', description: 'Classic black coffee', sku: 'CAF-001', barcode: '800001', price: 3.00, costPrice: 0.80, unit: 'cup', taxRate: 8.5, catSlug: 'hot-drinks' },
+    { name: 'Flat White', slug: 'flat-white', description: 'Smooth espresso with velvety milk', sku: 'CAF-002', barcode: '800002', price: 4.50, costPrice: 1.20, unit: 'cup', taxRate: 8.5, catSlug: 'hot-drinks' },
+    { name: 'Mocha', slug: 'mocha', description: 'Espresso with chocolate and milk', sku: 'CAF-003', barcode: '800003', price: 5.00, costPrice: 1.50, unit: 'cup', taxRate: 8.5, catSlug: 'hot-drinks' },
+    { name: 'Hot Chocolate', slug: 'hot-chocolate', description: 'Rich cocoa with whipped cream', sku: 'CAF-004', barcode: '800004', price: 4.00, costPrice: 1.00, unit: 'cup', taxRate: 8.5, catSlug: 'hot-drinks' },
+    { name: 'Chai Latte', slug: 'chai-latte', description: 'Spiced tea with steamed milk', sku: 'CAF-005', barcode: '800005', price: 4.50, costPrice: 1.00, unit: 'cup', taxRate: 8.5, catSlug: 'hot-drinks' },
+    { name: 'Iced Latte', slug: 'iced-latte', description: 'Cold espresso with milk over ice', sku: 'CAF-006', barcode: '800006', price: 5.00, costPrice: 1.30, unit: 'cup', taxRate: 8.5, catSlug: 'cold-drinks' },
+    { name: 'Iced Matcha', slug: 'iced-matcha', description: 'Green tea latte over ice', sku: 'CAF-007', barcode: '800007', price: 5.50, costPrice: 1.50, unit: 'cup', taxRate: 8.5, catSlug: 'cold-drinks' },
+    { name: 'Lemonade', slug: 'lemonade', description: 'Fresh-squeezed lemonade', sku: 'CAF-008', barcode: '800008', price: 3.50, costPrice: 0.80, unit: 'cup', taxRate: 8.5, catSlug: 'cold-drinks' },
+    { name: 'Smoothie Bowl', slug: 'smoothie-bowl', description: 'Acai smoothie bowl with toppings', sku: 'CAF-009', barcode: '800009', price: 8.00, costPrice: 3.00, unit: 'bowl', taxRate: 8.5, catSlug: 'cold-drinks' },
+    { name: 'Croissant', slug: 'croissant', description: 'Butter croissant, freshly baked', sku: 'CAF-010', barcode: '800010', price: 3.50, costPrice: 1.00, unit: 'piece', taxRate: 8.5, catSlug: 'pastries' },
+    { name: 'Almond Danish', slug: 'almond-danish', description: 'Flaky danish with almond cream', sku: 'CAF-011', barcode: '800011', price: 4.00, costPrice: 1.20, unit: 'piece', taxRate: 8.5, catSlug: 'pastries' },
+    { name: 'Blueberry Muffin', slug: 'blueberry-muffin', description: 'Fluffy blueberry muffin', sku: 'CAF-012', barcode: '800012', price: 3.50, costPrice: 1.00, unit: 'piece', taxRate: 8.5, catSlug: 'pastries' },
+    { name: 'Club Sandwich', slug: 'club-sandwich', description: 'Triple-decker club sandwich', sku: 'CAF-013', barcode: '800013', price: 7.50, costPrice: 3.00, unit: 'piece', taxRate: 8.5, catSlug: 'sandwiches' },
+    { name: 'Avocado Toast', slug: 'avocado-toast', description: 'Smashed avocado on sourdough', sku: 'CAF-014', barcode: '800014', price: 8.00, costPrice: 3.50, unit: 'piece', taxRate: 8.5, catSlug: 'sandwiches' },
+    { name: 'Cheesecake Slice', slug: 'cheesecake-slice', description: 'New York style cheesecake', sku: 'CAF-015', barcode: '800015', price: 6.00, costPrice: 2.00, unit: 'slice', taxRate: 8.5, catSlug: 'cakes' },
+    { name: 'Carrot Cake', slug: 'carrot-cake', description: 'Spiced carrot cake with cream cheese', sku: 'CAF-016', barcode: '800016', price: 5.50, costPrice: 2.00, unit: 'slice', taxRate: 8.5, catSlug: 'cakes' },
+  ];
+  for (const p of cafeProds) {
+    const { catSlug, ...data } = p;
+    await prisma.product.create({ data: { ...data, businessType: 'CAFE', categoryId: cafeCats[catSlug].id, branchId: branch.id } });
+  }
+
+  // ═══ GROCERY categories & products ═══
+  const groceryCats: Record<string, any> = {};
+  const groceryCatData = [
+    { name: 'Fruits & Vegetables', slug: 'fruits-vegs', icon: '🥬', color: '#22C55E', sortOrder: 1 },
+    { name: 'Dairy & Eggs', slug: 'dairy-eggs', icon: '🥛', color: '#3B82F6', sortOrder: 2 },
+    { name: 'Bakery', slug: 'bakery', icon: '🍞', color: '#F59E0B', sortOrder: 3 },
+    { name: 'Meat & Seafood', slug: 'meat-seafood', icon: '🥩', color: '#EF4444', sortOrder: 4 },
+    { name: 'Pantry', slug: 'pantry', icon: '🫙', color: '#8B5CF6', sortOrder: 5 },
+    { name: 'Beverages', slug: 'groc-beverages', icon: '🧃', color: '#14B8A6', sortOrder: 6 },
+  ];
+  for (const c of groceryCatData) {
+    groceryCats[c.slug] = await prisma.category.create({ data: { ...c, businessType: 'GROCERY', branchId: branch.id } });
+  }
+  const groceryProds = [
+    { name: 'Bananas (1 kg)', slug: 'bananas', description: 'Fresh yellow bananas', sku: 'GRO-001', barcode: '900001', price: 1.29, costPrice: 0.60, unit: 'kg', taxRate: 0, catSlug: 'fruits-vegs' },
+    { name: 'Tomatoes (1 kg)', slug: 'tomatoes', description: 'Vine-ripened tomatoes', sku: 'GRO-002', barcode: '900002', price: 2.49, costPrice: 1.00, unit: 'kg', taxRate: 0, catSlug: 'fruits-vegs' },
+    { name: 'Baby Spinach', slug: 'baby-spinach', description: 'Pre-washed baby spinach 200g', sku: 'GRO-003', barcode: '900003', price: 3.49, costPrice: 1.50, unit: 'pack', taxRate: 0, catSlug: 'fruits-vegs' },
+    { name: 'Avocado', slug: 'avocado', description: 'Ripe Hass avocado', sku: 'GRO-004', barcode: '900004', price: 1.99, costPrice: 0.80, unit: 'piece', taxRate: 0, catSlug: 'fruits-vegs' },
+    { name: 'Whole Milk (1 gal)', slug: 'whole-milk', description: 'Fresh whole milk', sku: 'GRO-005', barcode: '900005', price: 4.29, costPrice: 2.00, unit: 'gallon', taxRate: 0, catSlug: 'dairy-eggs' },
+    { name: 'Free-Range Eggs (12)', slug: 'free-range-eggs', description: 'Dozen free-range eggs', sku: 'GRO-006', barcode: '900006', price: 5.49, costPrice: 2.50, unit: 'dozen', taxRate: 0, catSlug: 'dairy-eggs' },
+    { name: 'Cheddar Cheese', slug: 'cheddar-cheese', description: 'Sharp cheddar block 250g', sku: 'GRO-007', barcode: '900007', price: 4.99, costPrice: 2.00, unit: 'block', taxRate: 0, catSlug: 'dairy-eggs' },
+    { name: 'Greek Yogurt', slug: 'greek-yogurt', description: 'Plain Greek yogurt 500g', sku: 'GRO-008', barcode: '900008', price: 3.99, costPrice: 1.50, unit: 'tub', taxRate: 0, catSlug: 'dairy-eggs' },
+    { name: 'Sourdough Bread', slug: 'sourdough-bread', description: 'Artisan sourdough loaf', sku: 'GRO-009', barcode: '900009', price: 5.99, costPrice: 2.00, unit: 'loaf', taxRate: 0, catSlug: 'bakery' },
+    { name: 'Bagels (6 pack)', slug: 'bagels', description: 'Plain bagels pack of 6', sku: 'GRO-010', barcode: '900010', price: 4.49, costPrice: 1.50, unit: 'pack', taxRate: 0, catSlug: 'bakery' },
+    { name: 'Chicken Breast (1 lb)', slug: 'chicken-breast', description: 'Boneless skinless chicken breast', sku: 'GRO-011', barcode: '900011', price: 6.99, costPrice: 3.50, unit: 'lb', taxRate: 0, catSlug: 'meat-seafood' },
+    { name: 'Salmon Fillet', slug: 'salmon-fillet', description: 'Atlantic salmon fillet 200g', sku: 'GRO-012', barcode: '900012', price: 8.99, costPrice: 5.00, unit: 'piece', taxRate: 0, catSlug: 'meat-seafood' },
+    { name: 'Olive Oil', slug: 'olive-oil', description: 'Extra virgin olive oil 500ml', sku: 'GRO-013', barcode: '900013', price: 7.99, costPrice: 4.00, unit: 'bottle', taxRate: 0, catSlug: 'pantry' },
+    { name: 'Pasta (500g)', slug: 'pasta', description: 'Penne pasta', sku: 'GRO-014', barcode: '900014', price: 1.99, costPrice: 0.60, unit: 'pack', taxRate: 0, catSlug: 'pantry' },
+    { name: 'Rice (2 lb)', slug: 'rice', description: 'Long grain white rice', sku: 'GRO-015', barcode: '900015', price: 3.49, costPrice: 1.50, unit: 'bag', taxRate: 0, catSlug: 'pantry' },
+    { name: 'Orange Juice (1 L)', slug: 'orange-juice', description: 'Fresh-squeezed orange juice', sku: 'GRO-016', barcode: '900016', price: 4.49, costPrice: 2.00, unit: 'bottle', taxRate: 0, catSlug: 'groc-beverages' },
+    { name: 'Sparkling Water (6pk)', slug: 'sparkling-water', description: 'Sparkling mineral water cans', sku: 'GRO-017', barcode: '900017', price: 5.99, costPrice: 2.50, unit: 'pack', taxRate: 0, catSlug: 'groc-beverages' },
+  ];
+  for (const p of groceryProds) {
+    const { catSlug, ...data } = p;
+    await prisma.product.create({ data: { ...data, businessType: 'GROCERY', categoryId: groceryCats[catSlug].id, branchId: branch.id } });
+  }
+
+  // ═══ PHARMACY categories & products ═══
+  const pharmCats: Record<string, any> = {};
+  const pharmCatData = [
+    { name: 'Over-The-Counter', slug: 'otc', icon: '💊', color: '#3B82F6', sortOrder: 1 },
+    { name: 'Vitamins & Supplements', slug: 'vitamins', icon: '🧬', color: '#22C55E', sortOrder: 2 },
+    { name: 'First Aid', slug: 'first-aid', icon: '🩹', color: '#EF4444', sortOrder: 3 },
+    { name: 'Personal Care', slug: 'personal-care', icon: '🧴', color: '#EC4899', sortOrder: 4 },
+    { name: 'Baby & Child', slug: 'baby-child', icon: '👶', color: '#F59E0B', sortOrder: 5 },
+  ];
+  for (const c of pharmCatData) {
+    pharmCats[c.slug] = await prisma.category.create({ data: { ...c, businessType: 'PHARMACY', branchId: branch.id } });
+  }
+  const pharmProds = [
+    { name: 'Paracetamol 500mg (20)', slug: 'paracetamol', description: 'Pain relief tablets', sku: 'PHR-001', barcode: '110001', price: 5.99, costPrice: 2.00, unit: 'box', taxRate: 0, catSlug: 'otc' },
+    { name: 'Ibuprofen 200mg (30)', slug: 'ibuprofen', description: 'Anti-inflammatory tablets', sku: 'PHR-002', barcode: '110002', price: 7.49, costPrice: 2.50, unit: 'box', taxRate: 0, catSlug: 'otc' },
+    { name: 'Cough Syrup 200ml', slug: 'cough-syrup', description: 'Honey & lemon cough relief', sku: 'PHR-003', barcode: '110003', price: 8.99, costPrice: 3.00, unit: 'bottle', taxRate: 0, catSlug: 'otc' },
+    { name: 'Allergy Relief (30)', slug: 'allergy-relief', description: 'Antihistamine tablets', sku: 'PHR-004', barcode: '110004', price: 9.99, costPrice: 3.50, unit: 'box', taxRate: 0, catSlug: 'otc' },
+    { name: 'Antacid Tablets (60)', slug: 'antacid', description: 'Chewable antacid tablets', sku: 'PHR-005', barcode: '110005', price: 6.49, costPrice: 2.00, unit: 'bottle', taxRate: 0, catSlug: 'otc' },
+    { name: 'Vitamin C 1000mg (60)', slug: 'vitamin-c', description: 'Immune support vitamin C', sku: 'PHR-006', barcode: '110006', price: 12.99, costPrice: 5.00, unit: 'bottle', taxRate: 0, catSlug: 'vitamins' },
+    { name: 'Multivitamin (90)', slug: 'multivitamin', description: 'Daily multivitamin tablets', sku: 'PHR-007', barcode: '110007', price: 15.99, costPrice: 6.00, unit: 'bottle', taxRate: 0, catSlug: 'vitamins' },
+    { name: 'Omega-3 Fish Oil (60)', slug: 'omega3', description: 'Fish oil softgels', sku: 'PHR-008', barcode: '110008', price: 18.99, costPrice: 8.00, unit: 'bottle', taxRate: 0, catSlug: 'vitamins' },
+    { name: 'Vitamin D3 (120)', slug: 'vitamin-d3', description: 'Vitamin D3 2000 IU', sku: 'PHR-009', barcode: '110009', price: 11.49, costPrice: 4.00, unit: 'bottle', taxRate: 0, catSlug: 'vitamins' },
+    { name: 'Adhesive Bandages (50)', slug: 'bandages', description: 'Assorted adhesive bandages', sku: 'PHR-010', barcode: '110010', price: 4.99, costPrice: 1.50, unit: 'box', taxRate: 0, catSlug: 'first-aid' },
+    { name: 'Antiseptic Spray', slug: 'antiseptic-spray', description: 'First aid antiseptic 100ml', sku: 'PHR-011', barcode: '110011', price: 6.99, costPrice: 2.50, unit: 'bottle', taxRate: 0, catSlug: 'first-aid' },
+    { name: 'Digital Thermometer', slug: 'thermometer', description: 'Digital body thermometer', sku: 'PHR-012', barcode: '110012', price: 9.99, costPrice: 4.00, unit: 'piece', taxRate: 0, catSlug: 'first-aid' },
+    { name: 'Hand Sanitizer 500ml', slug: 'hand-sanitizer', description: 'Antibacterial hand gel', sku: 'PHR-013', barcode: '110013', price: 5.49, costPrice: 1.50, unit: 'bottle', taxRate: 0, catSlug: 'personal-care' },
+    { name: 'Sunscreen SPF50', slug: 'sunscreen', description: 'Broad-spectrum sunscreen 200ml', sku: 'PHR-014', barcode: '110014', price: 14.99, costPrice: 6.00, unit: 'tube', taxRate: 0, catSlug: 'personal-care' },
+    { name: 'Baby Formula (800g)', slug: 'baby-formula', description: 'Infant formula powder', sku: 'PHR-015', barcode: '110015', price: 24.99, costPrice: 12.00, unit: 'tin', taxRate: 0, catSlug: 'baby-child' },
+    { name: 'Diaper Pack (40)', slug: 'diapers', description: 'Disposable diapers size 3', sku: 'PHR-016', barcode: '110016', price: 19.99, costPrice: 10.00, unit: 'pack', taxRate: 0, catSlug: 'baby-child' },
+  ];
+  for (const p of pharmProds) {
+    const { catSlug, ...data } = p;
+    await prisma.product.create({ data: { ...data, businessType: 'PHARMACY', categoryId: pharmCats[catSlug].id, branchId: branch.id } });
+  }
+
+  // ═══ RETAIL categories & products ═══
+  const retailCats: Record<string, any> = {};
+  const retailCatData = [
+    { name: 'Clothing', slug: 'clothing', icon: '👕', color: '#3B82F6', sortOrder: 1 },
+    { name: 'Footwear', slug: 'footwear', icon: '👟', color: '#22C55E', sortOrder: 2 },
+    { name: 'Accessories', slug: 'accessories', icon: '👜', color: '#EC4899', sortOrder: 3 },
+    { name: 'Electronics', slug: 'electronics', icon: '📱', color: '#8B5CF6', sortOrder: 4 },
+    { name: 'Home & Living', slug: 'home-living', icon: '🏠', color: '#F59E0B', sortOrder: 5 },
+  ];
+  for (const c of retailCatData) {
+    retailCats[c.slug] = await prisma.category.create({ data: { ...c, businessType: 'RETAIL', branchId: branch.id } });
+  }
+  const retailProds = [
+    { name: 'Classic T-Shirt', slug: 'classic-tshirt', description: 'Cotton crew neck tee', sku: 'RET-001', barcode: '120001', price: 19.99, costPrice: 6.00, unit: 'piece', taxRate: 8.5, catSlug: 'clothing' },
+    { name: 'Denim Jeans', slug: 'denim-jeans', description: 'Slim fit denim jeans', sku: 'RET-002', barcode: '120002', price: 49.99, costPrice: 18.00, unit: 'piece', taxRate: 8.5, catSlug: 'clothing' },
+    { name: 'Hoodie', slug: 'hoodie', description: 'Pullover fleece hoodie', sku: 'RET-003', barcode: '120003', price: 39.99, costPrice: 14.00, unit: 'piece', taxRate: 8.5, catSlug: 'clothing' },
+    { name: 'Summer Dress', slug: 'summer-dress', description: 'Floral print summer dress', sku: 'RET-004', barcode: '120004', price: 34.99, costPrice: 12.00, unit: 'piece', taxRate: 8.5, catSlug: 'clothing' },
+    { name: 'Running Shoes', slug: 'running-shoes', description: 'Lightweight running shoes', sku: 'RET-005', barcode: '120005', price: 79.99, costPrice: 35.00, unit: 'pair', taxRate: 8.5, catSlug: 'footwear' },
+    { name: 'Canvas Sneakers', slug: 'canvas-sneakers', description: 'Classic canvas sneakers', sku: 'RET-006', barcode: '120006', price: 44.99, costPrice: 15.00, unit: 'pair', taxRate: 8.5, catSlug: 'footwear' },
+    { name: 'Leather Belt', slug: 'leather-belt', description: 'Genuine leather belt', sku: 'RET-007', barcode: '120007', price: 24.99, costPrice: 8.00, unit: 'piece', taxRate: 8.5, catSlug: 'accessories' },
+    { name: 'Sunglasses', slug: 'sunglasses', description: 'UV protection sunglasses', sku: 'RET-008', barcode: '120008', price: 29.99, costPrice: 8.00, unit: 'piece', taxRate: 8.5, catSlug: 'accessories' },
+    { name: 'Backpack', slug: 'backpack', description: 'Water-resistant laptop backpack', sku: 'RET-009', barcode: '120009', price: 54.99, costPrice: 20.00, unit: 'piece', taxRate: 8.5, catSlug: 'accessories' },
+    { name: 'Wireless Earbuds', slug: 'wireless-earbuds', description: 'Bluetooth wireless earbuds', sku: 'RET-010', barcode: '120010', price: 39.99, costPrice: 15.00, unit: 'piece', taxRate: 8.5, catSlug: 'electronics' },
+    { name: 'Phone Case', slug: 'phone-case', description: 'Protective phone case', sku: 'RET-011', barcode: '120011', price: 14.99, costPrice: 3.00, unit: 'piece', taxRate: 8.5, catSlug: 'electronics' },
+    { name: 'USB-C Cable', slug: 'usb-c-cable', description: 'Fast-charge USB-C cable 1m', sku: 'RET-012', barcode: '120012', price: 9.99, costPrice: 2.00, unit: 'piece', taxRate: 8.5, catSlug: 'electronics' },
+    { name: 'Scented Candle', slug: 'scented-candle', description: 'Lavender scented soy candle', sku: 'RET-013', barcode: '120013', price: 18.99, costPrice: 5.00, unit: 'piece', taxRate: 8.5, catSlug: 'home-living' },
+    { name: 'Throw Pillow', slug: 'throw-pillow', description: 'Decorative throw pillow', sku: 'RET-014', barcode: '120014', price: 22.99, costPrice: 7.00, unit: 'piece', taxRate: 8.5, catSlug: 'home-living' },
+    { name: 'Coffee Mug', slug: 'coffee-mug', description: 'Ceramic coffee mug 350ml', sku: 'RET-015', barcode: '120015', price: 12.99, costPrice: 3.00, unit: 'piece', taxRate: 8.5, catSlug: 'home-living' },
+  ];
+  for (const p of retailProds) {
+    const { catSlug, ...data } = p;
+    await prisma.product.create({ data: { ...data, businessType: 'RETAIL', categoryId: retailCats[catSlug].id, branchId: branch.id } });
+  }
+
   // ═══ ORDERS ═══
   // Get all restaurant products for order items
   const allRestProducts = await prisma.product.findMany({ where: { businessType: 'RESTAURANT', branchId: branch.id } });

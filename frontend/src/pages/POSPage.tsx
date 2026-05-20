@@ -58,6 +58,13 @@ export function POSPage() {
   const tax = cart.getTax();
   const total = cart.getTotal();
 
+  // Sync cart orderType with current business config
+  useEffect(() => {
+    if (!orderTypes.includes(cart.orderType)) {
+      cart.setOrderType(orderTypes[0] || 'DINE_IN');
+    }
+  }, [businessType, orderTypes]);
+
   // Barcode scanner — listen for rapid key input
   const barcodeBuffer = useRef('');
   const barcodeTimer = useRef<any>(null);

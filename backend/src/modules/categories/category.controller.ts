@@ -37,7 +37,7 @@ export class CategoryController {
     try {
       const body = { ...req.body };
       if (!body.businessType) {
-        const setting = await prisma.setting.findFirst({ where: { key: 'businessType', branchId: req.user!.branchId } });
+        const setting = await prisma.setting.findFirst({ where: { key: 'businessType' } });
         if (setting) body.businessType = setting.value;
       }
       const category = await prisma.category.create({

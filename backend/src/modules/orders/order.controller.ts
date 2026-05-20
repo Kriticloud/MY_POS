@@ -15,12 +15,13 @@ const orderItemSchema = z.object({
 });
 
 const createOrderSchema = z.object({
-  orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY', 'ONLINE']),
+  orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY', 'ONLINE', 'IN_STORE', 'PICKUP', 'WALK_IN', 'APPOINTMENT']),
   items: z.array(orderItemSchema).min(1),
-  customerId: z.string().optional(),
-  tableId: z.string().optional(),
-  notes: z.string().optional(),
+  customerId: z.string().nullable().optional(),
+  tableId: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   discountAmount: z.number().optional(),
+  loyaltyPointsRedeemed: z.number().optional(),
   payments: z.array(z.object({
     method: z.enum(['CASH', 'CARD', 'UPI', 'WALLET', 'MIXED']),
     amount: z.number().positive(),

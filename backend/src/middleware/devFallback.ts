@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 // Track DB availability to avoid repeated timeouts
 let dbChecked = false;
 let dbAvailable = true;
+let dbUnavailableSince = 0;
+const DB_RETRY_INTERVAL = 30000; // retry DB every 30 seconds
 
 // ─── In-Memory Dev Store ────────────────────────────────────────────────
 const products: any[] = [
@@ -308,6 +310,12 @@ export function devRouter(req: Request, res: Response, next: NextFunction) {
   if (!req.originalUrl.startsWith('/api/')) return next();
   // If DB hasn't been checked yet or is available, let routes handle it
   if (!dbChecked || dbAvailable) return next();
+  // Periodically retry DB to recover from temporary failures
+  if (Date.now() - dbUnavailableSince > DB_RETRY_INTERVAL) {
+    dbChecked = false;
+    dbAvailable = true;
+    return next();
+  }
   // DB is known to be unavailable — handle the request directly
   return handleDevRequest(req, res, next);
 }
@@ -316,6 +324,7 @@ export function devRouter(req: Request, res: Response, next: NextFunction) {
 function markDbUnavailable() {
   dbChecked = true;
   dbAvailable = false;
+  dbUnavailableSince = Date.now();
 }
 
 // ─── Dev Fallback Error Middleware ────────────────────────────────────────────
@@ -350,6 +359,7 @@ function handleDevRequest(req: Request, res: Response, next: NextFunction) {
     // ── Products ──
     if (path === '/api/products' && method === 'GET') {
       let result = products.filter(p => p.isActive);
+      if (query.businessType) result = result.filter(p => p.businessType === query.businessType);
       if (query.search) {
         const s = query.search.toLowerCase();
         result = result.filter(p => p.name.toLowerCase().includes(s) || p.sku?.toLowerCase().includes(s) || p.barcode?.includes(s));
@@ -387,10 +397,12 @@ function handleDevRequest(req: Request, res: Response, next: NextFunction) {
 
     // ── Categories ──
     if (path === '/api/categories' && method === 'GET') {
-      const result = categories.filter(c => c.isActive).map(c => ({
+      let result = categories.filter(c => c.isActive);
+      if (query.businessType) result = result.filter(c => c.businessType === query.businessType);
+      const data = result.map(c => ({
         ...c, _count: { products: products.filter(p => p.categoryId === c.id && p.isActive).length }
       }));
-      return res.json({ success: true, data: result });
+      return res.json({ success: true, data });
     }
     if (path === '/api/categories' && method === 'POST') {
       const cat = { id: uid(), ...body, isActive: true, sortOrder: categories.length + 1, branchId: null };

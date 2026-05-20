@@ -93,7 +93,7 @@ export class ProductController {
       const data = productSchema.parse(req.body);
       // Auto-set businessType from settings if not provided
       if (!data.businessType) {
-        const setting = await prisma.setting.findFirst({ where: { key: 'businessType', branchId: req.user!.branchId } });
+        const setting = await prisma.setting.findFirst({ where: { key: 'businessType' } });
         if (setting) data.businessType = setting.value;
       }
       const product = await prisma.product.create({
