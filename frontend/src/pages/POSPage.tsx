@@ -250,9 +250,9 @@ export function POSPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] gap-4">
       {/* Product Grid */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <div className="flex items-center gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -308,7 +308,7 @@ export function POSPage() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 content-start">
+        <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
           {products.map((product: any) => (
             <motion.button key={product.id} whileTap={{ scale: 0.97 }}
               onClick={() => cart.addItem({ productId: product.id, name: product.name, price: product.price })}
@@ -347,7 +347,7 @@ export function POSPage() {
       </div>
 
       {/* Cart Sidebar */}
-      <div className="w-80 xl:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-card flex flex-col">
+      <div className="w-full lg:w-80 xl:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-card flex flex-col max-h-[50vh] lg:max-h-full">
         <div className="p-4 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">

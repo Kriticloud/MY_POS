@@ -35,6 +35,7 @@ import { giftCardRouter } from './modules/giftcards/giftcard.routes';
 import uploadRouter from './modules/upload/upload.routes';
 import { paymentRouter } from './modules/payments/payment.routes';
 import { webhookRouter } from './modules/webhooks/webhook.routes';
+import { smsRouter } from './modules/sms/sms.routes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerDocument } from './lib/swagger';
 
@@ -110,6 +111,7 @@ app.use('/api/gift-cards', giftCardRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/webhooks', webhookRouter);
+app.use('/api/sms', smsRouter);
 app.use('/api/settings', settingRouter);
 
 // API versioning: /api/v1/* mirrors /api/* for forward compatibility

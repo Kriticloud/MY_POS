@@ -58,11 +58,12 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Reports</h1>
           <p className="text-gray-500 mt-1">Business analytics and insights</p>
         </div>
+        <div className="flex flex-wrap gap-2">
         <button onClick={() => exportCSV(
           (orders || []).map((o: any) => ({ Order: o.orderNumber, Date: o.createdAt, Total: o.totalAmount, Status: o.status, Type: o.orderType, Customer: o.customer?.firstName || 'Walk-in' })),
           'orders-report'
@@ -73,10 +74,11 @@ export function ReportsPage() {
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700">
           <FileText className="w-4 h-4" /> PDF Report
         </button>
+        </div>
       </div>
 
       {/* Date Range Picker */}
-      <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl p-3 shadow-card">
+      <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-white dark:bg-gray-800 rounded-xl p-3 shadow-card">
         <Calendar className="w-5 h-5 text-gray-400" />
         {(['today', 'week', 'month', 'custom'] as const).map(d => (
           <button key={d} onClick={() => setDateRange(d)}
@@ -94,7 +96,7 @@ export function ReportsPage() {
       </div>
 
       {/* Report Tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 overflow-x-auto">
         {([{ key: 'overview', label: 'Overview' }, { key: 'products', label: 'Products' }, { key: 'staff', label: 'Staff Performance' }, { key: 'margins', label: 'Margins' }, { key: 'scheduled', label: 'Scheduled' }] as const).map(t => (
           <button key={t.key} onClick={() => setTab(t.key as ReportTab)}
             className={`flex-1 py-2 rounded-lg text-sm font-medium ${tab === t.key ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>
@@ -117,7 +119,7 @@ export function ReportsPage() {
 
       {/* Tab Content */}
       {tab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card">
             <div className="p-5 border-b border-gray-100 dark:border-gray-700"><h2 className="font-semibold">Payment Methods</h2></div>
             <div className="p-5">
@@ -273,7 +275,7 @@ function ScheduledReportsTab() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-5 space-y-3">
           <input placeholder="Report Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
             className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
               className="px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
               <option value="DAILY_SALES">Daily Sales</option>

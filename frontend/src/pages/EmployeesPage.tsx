@@ -48,7 +48,7 @@ export function EmployeesPage() {
       </div>
 
       {isLoading ? <Skeleton className="h-64 w-full" /> : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Employee List */}
           <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-card">
             <div className="p-5 border-b border-gray-100 dark:border-gray-700">

@@ -103,7 +103,7 @@ export function InventoryPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder="Search inventory..." value={search} onChange={e => setSearch(e.target.value)}
@@ -122,17 +122,18 @@ export function InventoryPage() {
       {/* Inventory Table */}
       {isLoading ? <Skeleton className="h-64 w-full" /> : (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card overflow-hidden">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
             <thead className="bg-gray-50 dark:bg-gray-700/50">
               <tr>
-                <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase">Product</th>
-                <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase">SKU</th>
-                <th className="text-center p-4 text-xs font-semibold text-gray-500 uppercase">Stock</th>
-                <th className="text-center p-4 text-xs font-semibold text-gray-500 uppercase">Min Level</th>
-                <th className="text-center p-4 text-xs font-semibold text-gray-500 uppercase">Batch</th>
-                <th className="text-center p-4 text-xs font-semibold text-gray-500 uppercase">Expiry</th>
-                <th className="text-center p-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                <th className="text-right p-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                <th className="text-left p-3 md:p-4 text-xs font-semibold text-gray-500 uppercase">Product</th>
+                <th className="text-left p-3 md:p-4 text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">SKU</th>
+                <th className="text-center p-3 md:p-4 text-xs font-semibold text-gray-500 uppercase">Stock</th>
+                <th className="text-center p-3 md:p-4 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Min Level</th>
+                <th className="text-center p-3 md:p-4 text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Batch</th>
+                <th className="text-center p-3 md:p-4 text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Expiry</th>
+                <th className="text-center p-3 md:p-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                <th className="text-right p-3 md:p-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -187,6 +188,7 @@ export function InventoryPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

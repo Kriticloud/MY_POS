@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2 } from 'lucide-react';
+import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2, MessageSquare, Send, Phone, CheckCircle, XCircle } from 'lucide-react';
 import { useSettings, useUpdateSetting, useChangePassword, useTaxes, useCreateTax, useUpdateTax, useDeleteTax, useBackups, useCreateBackup, useRestoreBackup, useDeleteBackup } from '../hooks/useApi';
 import { useSettingsStore, type BusinessType } from '../store/settingsStore';
 import { useThemeStore } from '../store/themeStore';
@@ -15,6 +15,7 @@ const sections = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'taxes', label: 'Tax Rates', icon: Receipt },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'sms', label: 'SMS / Twilio', icon: MessageSquare },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'database', label: 'Database', icon: Database },
 ];
@@ -69,14 +70,14 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex gap-6 min-h-[calc(100vh-6rem)]">
-      {/* Sidebar */}
-      <div className="w-56 shrink-0">
-        <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
-        <nav className="space-y-1">
+    <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-6rem)]">
+      {/* Sidebar - horizontal scroll on mobile, vertical on desktop */}
+      <div className="lg:w-56 lg:shrink-0">
+        <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white mb-4 lg:mb-6">Settings</h1>
+        <nav className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 lg:space-y-1">
           {sections.map(s => (
             <button key={s.id} onClick={() => setActiveSection(s.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeSection === s.id ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' : 'text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+              className={`flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap lg:w-full ${activeSection === s.id ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' : 'text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
               <s.icon className="w-4 h-4" /> {s.label}
             </button>
           ))}
@@ -290,6 +291,8 @@ export function SettingsPage() {
               </div>
             )}
 
+            {activeSection === 'sms' && <SmsSection getValue={getValue} setValue={setValue} saveSection={saveSection} />}
+
             {activeSection === 'security' && (
               <div className="space-y-4">
                 <h2 className="text-lg font-bold mb-4">Security</h2>
@@ -398,6 +401,178 @@ function DatabaseSection() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function SmsSection({ getValue, setValue, saveSection }: {
+  getValue: (key: string, fallback?: string) => string;
+  setValue: (key: string, value: string) => void;
+  saveSection: (keys: string[], group: string) => Promise<void>;
+}) {
+  const [testPhone, setTestPhone] = useState('');
+  const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [testError, setTestError] = useState('');
+  const smsEnabled = getValue('smsEnabled') === 'true';
+
+  const sendTestSms = async () => {
+    if (!testPhone) { toast.error('Enter a phone number'); return; }
+    setTestStatus('sending');
+    setTestError('');
+    try {
+      const response = await fetch('/api/sms/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || ''}`,
+        },
+        body: JSON.stringify({ to: testPhone }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTestStatus('success');
+        toast.success('Test SMS sent successfully!');
+      } else {
+        setTestStatus('error');
+        setTestError(data.error || 'Failed to send test SMS');
+        toast.error(data.error || 'Failed to send test SMS');
+      }
+    } catch {
+      setTestStatus('error');
+      setTestError('Network error');
+      toast.error('Failed to send test SMS');
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold">SMS & Twilio</h2>
+          <p className="text-xs text-gray-500 mt-1">Configure SMS notifications via Twilio</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium ${smsEnabled ? 'text-green-600' : 'text-gray-400'}`}>
+            {smsEnabled ? 'Enabled' : 'Disabled'}
+          </span>
+          <button onClick={() => setValue('smsEnabled', smsEnabled ? 'false' : 'true')}
+            className={`w-11 h-6 rounded-full transition-all ${smsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
+            <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-all ${smsEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Twilio Credentials */}
+      <div className={`space-y-3 ${!smsEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Phone className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Twilio Configuration</p>
+              <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">
+                Enter your Twilio credentials to enable SMS notifications. You can find these in your{' '}
+                <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">Twilio Console</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account SID</label>
+          <input
+            type="text"
+            value={getValue('twilioAccountSid')}
+            onChange={e => setValue('twilioAccountSid', e.target.value)}
+            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auth Token</label>
+          <input
+            type="password"
+            value={getValue('twilioAuthToken')}
+            onChange={e => setValue('twilioAuthToken', e.target.value)}
+            placeholder="••••••••••••••••••••••••••••••••"
+            className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Twilio Phone Number</label>
+          <input
+            type="text"
+            value={getValue('twilioPhoneNumber')}
+            onChange={e => setValue('twilioPhoneNumber', e.target.value)}
+            placeholder="+1234567890"
+            className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono"
+          />
+        </div>
+
+        {/* SMS Notification Preferences */}
+        <div className="border-t pt-4 mt-4 dark:border-gray-700">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">SMS Notification Triggers</h3>
+          {[
+            ['smsOnOrderConfirm', 'Order Confirmation SMS', 'Send SMS when an order is confirmed'],
+            ['smsOnOrderReady', 'Order Ready SMS', 'Send SMS when an order is ready for pickup'],
+            ['smsOnLoyaltyReward', 'Loyalty Reward SMS', 'Send SMS when loyalty points are earned'],
+          ].map(([key, label, desc]) => (
+            <div key={key} className="flex items-center justify-between py-2.5">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</p>
+                <p className="text-xs text-gray-500">{desc}</p>
+              </div>
+              <button onClick={() => setValue(key, getValue(key) === 'true' ? 'false' : 'true')}
+                className={`w-11 h-6 rounded-full transition-all shrink-0 ml-4 ${getValue(key) === 'true' ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-all ${getValue(key) === 'true' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Test SMS */}
+        <div className="border-t pt-4 dark:border-gray-700">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Send Test SMS</h3>
+          <div className="flex gap-2">
+            <input
+              type="tel"
+              value={testPhone}
+              onChange={e => setTestPhone(e.target.value)}
+              placeholder="+1234567890"
+              className="flex-1 px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono"
+            />
+            <button
+              onClick={sendTestSms}
+              disabled={testStatus === 'sending'}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50 whitespace-nowrap"
+            >
+              {testStatus === 'sending' ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</>
+              ) : (
+                <><Send className="w-4 h-4" /> Send Test</>
+              )}
+            </button>
+          </div>
+          {testStatus === 'success' && (
+            <div className="flex items-center gap-2 mt-2 text-green-600 text-xs">
+              <CheckCircle className="w-4 h-4" /> Test SMS sent successfully!
+            </div>
+          )}
+          {testStatus === 'error' && (
+            <div className="flex items-center gap-2 mt-2 text-red-500 text-xs">
+              <XCircle className="w-4 h-4" /> {testError}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <button
+        onClick={() => saveSection(['smsEnabled', 'twilioAccountSid', 'twilioAuthToken', 'twilioPhoneNumber', 'smsOnOrderConfirm', 'smsOnOrderReady', 'smsOnLoyaltyReward'], 'sms')}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700"
+      >
+        <Save className="w-4 h-4" /> Save SMS Settings
+      </button>
     </div>
   );
 }

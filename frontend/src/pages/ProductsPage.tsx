@@ -62,12 +62,12 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1>
           <p className="text-gray-500 mt-1">{pageInfo.subtitle}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={() => {
             const data = (apiProducts || []).map((p: any) => ({ name: p.name, sku: p.sku || '', price: p.price, costPrice: p.costPrice || '', category: p.category?.name || '', barcode: p.barcode || '', taxRate: p.taxRate }));
             exportToCSV(data, 'products');
@@ -159,8 +159,8 @@ export function ProductsPage() {
                 <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
                     <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">Price *</label>
                     <input required type="number" step="0.01" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm" /></div>

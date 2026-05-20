@@ -61,9 +61,9 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div><h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1><p className="text-gray-500 mt-1">{pageInfo.subtitle}</p></div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={() => {
             const data = (customers || []).map((c: any) => ({ firstName: c.firstName, lastName: c.lastName || '', email: c.email || '', phone: c.phone || '', address: c.address || '', loyaltyPoints: c.loyaltyPoints }));
             exportToCSV(data, 'customers');

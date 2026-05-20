@@ -95,7 +95,7 @@ export function DashboardPage() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-5">
           <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Revenue by Day</h2>
           {ordersByDay.some(d => d.value > 0) ? (

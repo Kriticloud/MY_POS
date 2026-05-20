@@ -42,12 +42,12 @@ export function TablesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">{pageInfo.title}</h1>
           <p className="text-gray-500 mt-1">{pageInfo.subtitle}</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           {Object.entries(statusConfig).map(([status, cfg]) => (
             <div key={status} className="flex items-center gap-1.5 text-xs text-gray-500">
               <span className={`w-2 h-2 rounded-full ${cfg.dot}`} /> {status}
