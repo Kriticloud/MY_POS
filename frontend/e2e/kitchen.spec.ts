@@ -18,6 +18,10 @@ test.describe('Kitchen Page', () => {
     await page.goto('/kitchen');
   });
 
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
   test('should display kitchen display page', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Kitchen Display' })).toBeVisible();
     await expect(page.getByText('Live')).toBeVisible();

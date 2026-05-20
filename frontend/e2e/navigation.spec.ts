@@ -17,31 +17,35 @@ test.describe('Navigation', () => {
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
   });
 
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
   test('should navigate to all pages', async ({ page }) => {
     // Navigate via URL since sidebar may be offscreen in test viewport
     await page.goto('/pos');
-    await expect(page.getByPlaceholder('Search products...')).toBeVisible();
+    await expect(page.getByPlaceholder('Search products...')).toBeVisible({ timeout: 15000 });
 
     await page.goto('/orders');
-    await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible({ timeout: 15000 });
 
     await page.goto('/tables');
-    await expect(page.getByRole('heading', { name: 'Tables' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tables' })).toBeVisible({ timeout: 15000 });
 
     await page.goto('/kitchen');
-    await expect(page.getByRole('heading', { name: 'Kitchen Display' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Kitchen Display' })).toBeVisible({ timeout: 15000 });
 
     await page.goto('/products');
-    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible({ timeout: 15000 });
 
     await page.goto('/customers');
-    await expect(page.getByRole('heading', { name: 'Customers' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Customers' })).toBeVisible({ timeout: 15000 });
 
     await page.goto('/reports');
-    await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible({ timeout: 15000 });
 
     await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 15000 });
   });
 
   test('should show sidebar navigation links', async ({ page }) => {

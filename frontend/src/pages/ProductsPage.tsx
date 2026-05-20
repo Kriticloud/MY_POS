@@ -16,12 +16,12 @@ export function ProductsPage() {
   const [form, setForm] = useState(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  const businessType = useSettingsStore((s) => s.businessType);
   const { data: products, isLoading } = useProducts({ search: search || undefined, businessType });
   const { data: categories } = useCategories({ businessType });
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
-  const businessType = useSettingsStore((s) => s.businessType);
   const config = getBusinessConfig(businessType);
   const pageInfo = getPageTitle('/products', businessType);
   const labels = getEntityLabels(businessType);

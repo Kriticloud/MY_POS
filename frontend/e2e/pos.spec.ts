@@ -18,6 +18,10 @@ test.describe('POS Page', () => {
     await page.goto('/pos');
   });
 
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
   test('should display products grid', async ({ page }) => {
     await expect(page.getByPlaceholder('Search products...')).toBeVisible();
     // Wait for products to load

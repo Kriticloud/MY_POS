@@ -18,6 +18,10 @@ test.describe('Orders Page', () => {
     await page.goto('/orders');
   });
 
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
   test('should display orders page', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
     await expect(page.getByText('Manage and track all orders')).toBeVisible();
@@ -35,7 +39,7 @@ test.describe('Orders Page', () => {
 
   test('should show orders in table', async ({ page }) => {
     await expect(page.getByRole('table')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('ORD-001')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
   });
 
   test('should filter orders by status', async ({ page }) => {

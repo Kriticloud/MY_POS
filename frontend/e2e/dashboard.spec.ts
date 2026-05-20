@@ -18,6 +18,10 @@ test.describe('Dashboard', () => {
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
   });
 
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
   test('should display dashboard with stats', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByText('Total Revenue')).toBeVisible({ timeout: 15000 });

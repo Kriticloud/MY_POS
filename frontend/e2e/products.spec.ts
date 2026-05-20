@@ -18,6 +18,10 @@ test.describe('Products Page', () => {
     await page.goto('/products');
   });
 
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
   test('should display products page with table', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible();
     await expect(page.getByText('Manage your product catalog')).toBeVisible();
