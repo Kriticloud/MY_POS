@@ -16,9 +16,11 @@ import { KitchenPage } from './pages/KitchenPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { KeyboardShortcuts } from './components/KeyboardShortcuts';
+import { useWebSocket } from './hooks/useWebSocket';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
+  useWebSocket(); // Multi-terminal real-time sync
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }

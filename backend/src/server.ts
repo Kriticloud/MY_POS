@@ -1,6 +1,7 @@
 import app from './app';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { setIO } from './lib/socket';
 
 const PORT = process.env.PORT || 4001;
 
@@ -12,6 +13,8 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
   },
 });
+
+setIO(io);
 
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
@@ -36,8 +39,6 @@ io.on('connection', (socket) => {
     console.log(`Client disconnected: ${socket.id}`);
   });
 });
-
-export { io };
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

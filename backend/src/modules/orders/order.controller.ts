@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma';
 import { AppError } from '../../middleware/errorHandler';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { getIO } from '../../lib/socket';
 
 const orderItemSchema = z.object({
   productId: z.string(),
@@ -146,6 +147,48 @@ export class OrderController {
         });
       }
 
+      // Auto-deduct inventory
+      for (const item of data.items) {
+        const inventory = await prisma.inventory.findFirst({
+          where: { productId: item.productId, branchId: req.user!.branchId },
+        });
+        if (inventory) {
+          await prisma.inventory.update({
+            where: { id: inventory.id },
+            data: { quantity: { decrement: item.quantity } },
+          });
+          await prisma.stockMovement.create({
+            data: {
+              inventoryId: inventory.id,
+              type: 'SALE',
+              quantity: item.quantity,
+              reason: `Order ${orderNumber}`,
+              reference: order.id,
+            },
+          });
+        }
+      }
+
+      // Log activity
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user!.id,
+          action: 'CREATE_ORDER',
+          entity: 'Order',
+          entityId: order.id,
+          details: JSON.stringify({ orderNumber, totalAmount, items: data.items.length }),
+        },
+      });
+
+      // Emit WebSocket event for multi-terminal sync
+      const io1 = getIO();
+      if (io1) {
+        io1.to(`branch:${req.user!.branchId}`).emit('order-created', {
+          order,
+          branchId: req.user!.branchId,
+        });
+      }
+
       res.status(201).json({ success: true, data: order });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -172,7 +215,251 @@ export class OrderController {
         });
       }
 
+      // Log activity
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user!.id,
+          action: 'UPDATE_ORDER_STATUS',
+          entity: 'Order',
+          entityId: order.id,
+          details: JSON.stringify({ status, orderNumber: order.orderNumber }),
+        },
+      });
+
+      // Emit WebSocket event
+      const io2 = getIO();
+      if (io2) {
+        io2.to(`branch:${req.user!.branchId}`).emit('order-updated', {
+          order,
+          branchId: req.user!.branchId,
+        });
+        if (['CONFIRMED', 'PREPARING', 'READY'].includes(status)) {
+          io2.to(`branch:${req.user!.branchId}`).emit('kitchen-updated', { order });
+        }
+      }
+
       res.json({ success: true, data: order });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  voidOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { reason } = req.body;
+      if (!reason) throw new AppError('Void reason is required', 400);
+
+      const order = await prisma.order.findUnique({
+        where: { id: req.params.id },
+        include: { items: true },
+      });
+      if (!order) throw new AppError('Order not found', 404);
+      if (order.status === 'VOIDED' || order.status === 'REFUNDED') {
+        throw new AppError('Order is already voided/refunded', 400);
+      }
+
+      // Void the order
+      const voidedOrder = await prisma.order.update({
+        where: { id: req.params.id },
+        data: { status: 'VOIDED' },
+        include: { items: true, payments: true },
+      });
+
+      // Restore inventory for voided items
+      for (const item of order.items) {
+        const inventory = await prisma.inventory.findFirst({
+          where: { productId: item.productId, branchId: order.branchId },
+        });
+        if (inventory) {
+          await prisma.inventory.update({
+            where: { id: inventory.id },
+            data: { quantity: { increment: item.quantity } },
+          });
+          await prisma.stockMovement.create({
+            data: {
+              inventoryId: inventory.id,
+              type: 'RETURN',
+              quantity: item.quantity,
+              reason: `Void: ${reason}`,
+              reference: order.id,
+            },
+          });
+        }
+      }
+
+      // Free table if applicable
+      if (order.tableId) {
+        await prisma.table.update({
+          where: { id: order.tableId },
+          data: { status: 'AVAILABLE' },
+        });
+      }
+
+      // Log activity
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user!.id,
+          action: 'VOID_ORDER',
+          entity: 'Order',
+          entityId: order.id,
+          details: JSON.stringify({ orderNumber: order.orderNumber, reason, amount: order.totalAmount }),
+        },
+      });
+
+      // Emit WebSocket event
+      const io3 = getIO();
+      if (io3) {
+        io3.to(`branch:${req.user!.branchId}`).emit('order-updated', {
+          order: voidedOrder,
+          branchId: req.user!.branchId,
+        });
+      }
+
+      res.json({ success: true, data: voidedOrder, message: `Order ${order.orderNumber} voided` });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  refundOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { reason, amount } = req.body;
+      if (!reason) throw new AppError('Refund reason is required', 400);
+
+      const order = await prisma.order.findUnique({
+        where: { id: req.params.id },
+        include: { items: true, payments: true },
+      });
+      if (!order) throw new AppError('Order not found', 404);
+      if (order.status !== 'COMPLETED') {
+        throw new AppError('Only completed orders can be refunded', 400);
+      }
+
+      const refundAmount = amount || order.totalAmount;
+      const isPartial = refundAmount < order.totalAmount;
+
+      // Update order status
+      const refundedOrder = await prisma.order.update({
+        where: { id: req.params.id },
+        data: { status: isPartial ? 'PARTIALLY_REFUNDED' : 'REFUNDED' },
+        include: { items: true, payments: true },
+      });
+
+      // Create refund payment record
+      await prisma.payment.create({
+        data: {
+          orderId: order.id,
+          method: order.payments[0]?.method || 'CASH',
+          amount: -refundAmount,
+          status: 'REFUNDED',
+          reference: `Refund: ${reason}`,
+        },
+      });
+
+      // Restore inventory for full refunds
+      if (!isPartial) {
+        for (const item of order.items) {
+          const inventory = await prisma.inventory.findFirst({
+            where: { productId: item.productId, branchId: order.branchId },
+          });
+          if (inventory) {
+            await prisma.inventory.update({
+              where: { id: inventory.id },
+              data: { quantity: { increment: item.quantity } },
+            });
+            await prisma.stockMovement.create({
+              data: {
+                inventoryId: inventory.id,
+                type: 'RETURN',
+                quantity: item.quantity,
+                reason: `Refund: ${reason}`,
+                reference: order.id,
+              },
+            });
+          }
+        }
+      }
+
+      // Log activity
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user!.id,
+          action: 'REFUND_ORDER',
+          entity: 'Order',
+          entityId: order.id,
+          details: JSON.stringify({ orderNumber: order.orderNumber, reason, refundAmount, isPartial }),
+        },
+      });
+
+      // Emit WebSocket event
+      const io4 = getIO();
+      if (io4) {
+        io4.to(`branch:${req.user!.branchId}`).emit('order-updated', {
+          order: refundedOrder,
+          branchId: req.user!.branchId,
+        });
+      }
+
+      res.json({ success: true, data: refundedOrder, message: `Refund of $${refundAmount.toFixed(2)} processed` });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  applyDiscount = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { discountId, discountType, discountValue, reason } = req.body;
+
+      const order = await prisma.order.findUnique({
+        where: { id: req.params.id },
+      });
+      if (!order) throw new AppError('Order not found', 404);
+
+      let discountAmount = 0;
+
+      if (discountId) {
+        // Apply a predefined discount
+        const discount = await prisma.discount.findUnique({ where: { id: discountId } });
+        if (!discount || !discount.isActive) throw new AppError('Discount not found or inactive', 400);
+        if (discount.minOrder && order.subtotal < discount.minOrder) {
+          throw new AppError(`Minimum order amount is $${discount.minOrder}`, 400);
+        }
+        discountAmount = discount.type === 'PERCENTAGE'
+          ? order.subtotal * (discount.value / 100)
+          : discount.value;
+        if (discount.maxDiscount && discountAmount > discount.maxDiscount) {
+          discountAmount = discount.maxDiscount;
+        }
+      } else if (discountType && discountValue) {
+        // Manual discount
+        discountAmount = discountType === 'PERCENTAGE'
+          ? order.subtotal * (discountValue / 100)
+          : discountValue;
+      } else {
+        throw new AppError('Provide discountId or discountType + discountValue', 400);
+      }
+
+      const updatedOrder = await prisma.order.update({
+        where: { id: req.params.id },
+        data: {
+          discountAmount,
+          totalAmount: order.subtotal + order.taxAmount - discountAmount,
+        },
+        include: { items: { include: { product: { select: { name: true } } } }, payments: true },
+      });
+
+      // Log activity
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user!.id,
+          action: 'APPLY_DISCOUNT',
+          entity: 'Order',
+          entityId: order.id,
+          details: JSON.stringify({ orderNumber: order.orderNumber, discountAmount, reason }),
+        },
+      });
+
+      res.json({ success: true, data: updatedOrder });
     } catch (error) {
       next(error);
     }

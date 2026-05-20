@@ -46,6 +46,7 @@ model User {
   branch        Branch?        @relation(fields: [branchId], references: [id])
   orders        Order[]
   activityLogs  ActivityLog[]
+  clockEntries  ClockEntry[]
   appointments  Appointment[]  @relation("StaffAppointments")
   @@map("users")
 }
@@ -309,4 +310,17 @@ model Setting {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("settings")
+}
+
+model ClockEntry {
+  id        String    @id @default(uuid())
+  userId    String
+  clockIn   DateTime  @default(now())
+  clockOut  DateTime?
+  hoursWorked Float?
+  branchId  String?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+  @@index([userId, clockIn])
+  @@map("clock_entries")
 }

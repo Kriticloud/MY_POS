@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { useOrders, useUpdateOrderStatus } from '../hooks/useApi';
-import { Search, Filter, Eye, X, ChevronDown } from 'lucide-react';
+import { useOrders, useUpdateOrderStatus, useVoidOrder } from '../hooks/useApi';
+import { Search, Filter, Eye, X, ChevronDown, Ban, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
 import { OrderStatusTimeline } from '../components/OrderStatusTimeline';
 
-const statusOptions = ['ALL', 'PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED'];
+const statusOptions = ['ALL', 'PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED', 'VOIDED', 'REFUNDED'];
 const statusColor: Record<string, string> = {
   COMPLETED: 'bg-green-100 text-green-700', CONFIRMED: 'bg-blue-100 text-blue-700',
   PREPARING: 'bg-amber-100 text-amber-700', READY: 'bg-purple-100 text-purple-700',
   PENDING: 'bg-gray-100 text-gray-700', CANCELLED: 'bg-red-100 text-red-700',
-  SERVED: 'bg-teal-100 text-teal-700',
+  SERVED: 'bg-teal-100 text-teal-700', VOIDED: 'bg-red-100 text-red-700',
+  REFUNDED: 'bg-orange-100 text-orange-700', PARTIALLY_REFUNDED: 'bg-orange-100 text-orange-600',
 };
 const nextStatus: Record<string, string> = {
   PENDING: 'CONFIRMED', CONFIRMED: 'PREPARING', PREPARING: 'READY', READY: 'SERVED', SERVED: 'COMPLETED',
@@ -28,6 +29,34 @@ export function OrdersPage() {
   const labels = getEntityLabels(businessType);
   const { data: orders, isLoading } = useOrders(statusFilter !== 'ALL' ? { status: statusFilter } : undefined);
   const updateStatus = useUpdateOrderStatus();
+  const voidOrder = useVoidOrder();
+
+  const handleVoid = async (orderId: string) => {
+    const reason = prompt('Enter reason for voiding this order:');
+    if (!reason) return;
+    try {
+      await voidOrder.mutateAsync({ id: orderId, reason });
+      toast.success('Order voided');
+      setSelectedOrder(null);
+    } catch { toast.error('Failed to void order'); }
+  };
+
+  const handleRefund = async (orderId: string, totalAmount: number) => {
+    const reason = prompt('Enter reason for refund:');
+    if (!reason) return;
+    const amountStr = prompt(`Enter refund amount (max ${formatCurrency(totalAmount)}):`, totalAmount.toFixed(2));
+    if (!amountStr) return;
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0 || amount > totalAmount) {
+      toast.error('Invalid refund amount');
+      return;
+    }
+    try {
+      const { data } = await (await import('../services/api')).default.put(`/orders/${orderId}/refund`, { reason, amount });
+      if (data.success) toast.success(data.message || 'Refund processed');
+      setSelectedOrder(null);
+    } catch { toast.error('Failed to process refund'); }
+  };
 
   const filteredOrders = (orders || []).filter((o: any) => {
     if (search) {
@@ -155,6 +184,21 @@ export function OrdersPage() {
                     Move to {nextStatus[selectedOrder.status]}
                   </button>
                 )}
+                {/* Void & Refund Actions */}
+                <div className="flex gap-2">
+                  {!['VOIDED', 'REFUNDED', 'CANCELLED'].includes(selectedOrder.status) && (
+                    <button onClick={() => handleVoid(selectedOrder.id)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 border border-red-200">
+                      <Ban className="w-4 h-4" /> Void Order
+                    </button>
+                  )}
+                  {selectedOrder.status === 'COMPLETED' && (
+                    <button onClick={() => handleRefund(selectedOrder.id, selectedOrder.totalAmount)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-50 text-orange-600 rounded-xl font-medium hover:bg-orange-100 border border-orange-200">
+                      <RotateCcw className="w-4 h-4" /> Refund
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           </motion.div>
