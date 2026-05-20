@@ -2,12 +2,12 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../store/cartStore';
 import { formatCurrency } from '../utils/helpers';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, ShoppingBag, X, Percent, ScanBarcode, User, Wallet, Star, Printer, Receipt, CheckCircle2, PauseCircle, PlayCircle, MessageSquare, Heart, Zap, Monitor } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, ShoppingBag, X, Percent, ScanBarcode, User, Wallet, Star, Printer, Receipt, CheckCircle2, PauseCircle, PlayCircle, MessageSquare, Heart, Zap, Monitor, Mail, Send, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useProducts, useCategories, useCreateOrder, useCustomers, useProductByBarcode } from '../hooks/useApi';
+import { useProducts, useCategories, useCreateOrder, useCustomers, useProductByBarcode, useSettings } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
-import { printReceipt } from '../services/receipt';
+import { printReceipt, generateReceiptHTML } from '../services/receipt';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 import { openCustomerDisplay } from '../services/customerDisplay';
 
@@ -41,13 +41,29 @@ export function POSPage() {
   const [splitPayments, setSplitPayments] = useState<SplitPayment[]>([{ method: 'CASH', amount: 0 }]);
   const [loyaltyRedeem, setLoyaltyRedeem] = useState(0);
 
+  // Receipt send state
+  const [receiptPhone, setReceiptPhone] = useState('');
+  const [receiptEmail, setReceiptEmail] = useState('');
+  const [sendingSms, setSendingSms] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   const barcodeRef = useRef<HTMLInputElement>(null);
   const businessType = useSettingsStore((s) => s.businessType);
   const { data: apiProducts } = useProducts({ businessType });
   const { data: apiCategories } = useCategories({ businessType });
   const { data: customers } = useCustomers({ search: customerSearch || undefined });
+  const { data: allSettings } = useSettings();
   const orderTypes = getBusinessConfig(businessType).orderTypes;
   const createOrder = useCreateOrder();
+
+  // Derive SMS/Email enabled flags from settings
+  const settingsMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (allSettings) (allSettings as any[]).forEach((s: any) => { map[s.key] = s.value; });
+    return map;
+  }, [allSettings]);
+  const smsEnabled = settingsMap.smsEnabled === 'true';
+  const emailEnabled = settingsMap.emailEnabled === 'true';
   const user = useAuthStore(s => s.user);
 
   const config = getBusinessConfig(businessType);
@@ -662,15 +678,104 @@ export function POSPage() {
                   {/* Footer */}
                   <p className="text-center text-xs text-gray-400 mt-4">Thank you for your visit! 🙏</p>
                 </div>
+
+                {/* Send Receipt via SMS / Email */}
+                {(smsEnabled || emailEnabled) && (
+                  <div className="mt-4 space-y-3">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Send Receipt</p>
+
+                    {/* SMS Input */}
+                    {smsEnabled && (
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input type="tel" value={receiptPhone} onChange={e => setReceiptPhone(e.target.value)}
+                            placeholder="Phone number (optional)"
+                            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-green-500/20" />
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!receiptPhone) { toast.error('Enter a phone number to send SMS'); return; }
+                            setSendingSms(true);
+                            try {
+                              const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || '';
+                              const res = await fetch('/api/receipt/send-sms', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({
+                                  to: receiptPhone,
+                                  orderNumber: lastOrderData.orderNumber,
+                                  customerName: lastOrderData.customerName || '',
+                                  total: formatCurrency(lastOrderData.total),
+                                  businessName: lastOrderData.businessName,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (data.success) toast.success('Receipt SMS sent!');
+                              else toast.error(typeof data.error === 'string' ? data.error : data.error?.message || 'SMS failed');
+                            } catch { toast.error('Failed to send SMS'); }
+                            setSendingSms(false);
+                          }}
+                          disabled={sendingSms || !receiptPhone}
+                          className="flex items-center gap-1.5 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium whitespace-nowrap transition-all"
+                        >
+                          {sendingSms ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
+                          SMS
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Email Input */}
+                    {emailEnabled && (
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input type="email" value={receiptEmail} onChange={e => setReceiptEmail(e.target.value)}
+                            placeholder="Email address (optional)"
+                            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!receiptEmail) { toast.error('Enter an email to send receipt'); return; }
+                            setSendingEmail(true);
+                            try {
+                              const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || '';
+                              const receiptHtml = generateReceiptHTML(lastOrderData);
+                              const res = await fetch('/api/receipt/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({
+                                  to: receiptEmail,
+                                  receiptHtml,
+                                  orderNumber: lastOrderData.orderNumber,
+                                  businessName: lastOrderData.businessName,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (data.success) toast.success('Receipt email sent!');
+                              else toast.error(typeof data.error === 'string' ? data.error : data.error?.message || 'Email failed');
+                            } catch { toast.error('Failed to send email'); }
+                            setSendingEmail(false);
+                          }}
+                          disabled={sendingEmail || !receiptEmail}
+                          className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium whitespace-nowrap transition-all"
+                        >
+                          {sendingEmail ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mail className="w-4 h-4" />}
+                          Email
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
               <div className="px-6 pb-5 pt-2 flex gap-3">
-                <button onClick={() => { setShowReceiptPreview(false); setLastOrderData(null); }}
+                <button onClick={() => { setShowReceiptPreview(false); setLastOrderData(null); setReceiptPhone(''); setReceiptEmail(''); }}
                   className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-all text-sm">
-                  Skip
+                  Done
                 </button>
-                <button onClick={() => { printReceipt(lastOrderData); setShowReceiptPreview(false); setLastOrderData(null); }}
+                <button onClick={() => { printReceipt(lastOrderData); setShowReceiptPreview(false); setLastOrderData(null); setReceiptPhone(''); setReceiptEmail(''); }}
                   className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all text-sm flex items-center justify-center gap-2">
                   <Printer className="w-4 h-4" /> Print Receipt
                 </button>

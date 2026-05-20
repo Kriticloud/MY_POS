@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2, MessageSquare, Send, Phone, CheckCircle, XCircle } from 'lucide-react';
+import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2, MessageSquare, Send, Phone, CheckCircle, XCircle, Mail } from 'lucide-react';
 import { useSettings, useUpdateSetting, useChangePassword, useTaxes, useCreateTax, useUpdateTax, useDeleteTax, useBackups, useCreateBackup, useRestoreBackup, useDeleteBackup } from '../hooks/useApi';
 import { useSettingsStore, type BusinessType } from '../store/settingsStore';
 import { useThemeStore } from '../store/themeStore';
@@ -411,50 +411,71 @@ function SmsSection({ getValue, setValue, saveSection }: {
   saveSection: (keys: string[], group: string) => Promise<void>;
 }) {
   const [testPhone, setTestPhone] = useState('');
-  const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
-  const [testError, setTestError] = useState('');
+  const [testEmail, setTestEmail] = useState('');
+  const [smsTestStatus, setSmsTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [emailTestStatus, setEmailTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [smsTestError, setSmsTestError] = useState('');
+  const [emailTestError, setEmailTestError] = useState('');
   const smsEnabled = getValue('smsEnabled') === 'true';
+  const emailEnabled = getValue('emailEnabled') === 'true';
+
+  const getAuthHeader = () => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || ''}`,
+  });
 
   const sendTestSms = async () => {
     if (!testPhone) { toast.error('Enter a phone number'); return; }
-    setTestStatus('sending');
-    setTestError('');
+    setSmsTestStatus('sending');
+    setSmsTestError('');
     try {
-      const response = await fetch('/api/sms/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || ''}`,
-        },
-        body: JSON.stringify({ to: testPhone }),
-      });
+      const response = await fetch('/api/sms/test', { method: 'POST', headers: getAuthHeader(), body: JSON.stringify({ to: testPhone }) });
       const data = await response.json();
-      if (data.success) {
-        setTestStatus('success');
-        toast.success('Test SMS sent successfully!');
-      } else {
-        setTestStatus('error');
-        setTestError(data.error || 'Failed to send test SMS');
-        toast.error(data.error || 'Failed to send test SMS');
-      }
-    } catch {
-      setTestStatus('error');
-      setTestError('Network error');
-      toast.error('Failed to send test SMS');
-    }
+      if (data.success) { setSmsTestStatus('success'); toast.success('Test SMS sent!'); }
+      else { setSmsTestStatus('error'); setSmsTestError(data.error || 'Failed'); toast.error(data.error || 'Failed'); }
+    } catch { setSmsTestStatus('error'); setSmsTestError('Network error'); toast.error('Failed to send test SMS'); }
   };
+
+  const sendTestEmail = async () => {
+    if (!testEmail) { toast.error('Enter an email address'); return; }
+    setEmailTestStatus('sending');
+    setEmailTestError('');
+    try {
+      const response = await fetch('/api/receipt/test-email', { method: 'POST', headers: getAuthHeader(), body: JSON.stringify({ to: testEmail }) });
+      const data = await response.json();
+      if (data.success) { setEmailTestStatus('success'); toast.success('Test email sent!'); }
+      else { setEmailTestStatus('error'); setEmailTestError(data.error || 'Failed'); toast.error(data.error || 'Failed'); }
+    } catch { setEmailTestStatus('error'); setEmailTestError('Network error'); toast.error('Failed to send test email'); }
+  };
+
+  const smsTemplates = [
+    { id: '1', preview: 'Hi {customerName}, your order #{orderNumber} at {businessName} is confirmed! Total: {total}. Thank you for choosing us!' },
+    { id: '2', preview: '{businessName} — Order #{orderNumber} placed successfully. Amount: {total}. We appreciate your business, {customerName}!' },
+    { id: '3', preview: 'Thank you {customerName}! 🎉 Your {businessName} order #{orderNumber} ({total}) has been received. See you again soon!' },
+    { id: '4', preview: '{businessName} Receipt: Order #{orderNumber} | Total: {total} | Customer: {customerName}. Thank you for your purchase!' },
+  ];
 
   return (
     <div className="space-y-5">
+      {/* ── SMS / Twilio Toggle ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold">SMS & Twilio</h2>
-          <p className="text-xs text-gray-500 mt-1">Configure SMS notifications via Twilio</p>
+          <h2 className="text-lg font-bold">SMS & Email Notifications</h2>
+          <p className="text-xs text-gray-500 mt-1">Configure SMS via Twilio and email notifications</p>
+        </div>
+      </div>
+
+      {/* SMS Enable */}
+      <div className="flex items-center justify-between py-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-4">
+        <div className="flex items-center gap-3">
+          <Phone className="w-5 h-5 text-green-500" />
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">SMS Service (Twilio)</p>
+            <p className="text-xs text-gray-500">Send SMS notifications on checkout</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-medium ${smsEnabled ? 'text-green-600' : 'text-gray-400'}`}>
-            {smsEnabled ? 'Enabled' : 'Disabled'}
-          </span>
+          <span className={`text-xs font-medium ${smsEnabled ? 'text-green-600' : 'text-gray-400'}`}>{smsEnabled ? 'On' : 'Off'}</span>
           <button onClick={() => setValue('smsEnabled', smsEnabled ? 'false' : 'true')}
             className={`w-11 h-6 rounded-full transition-all ${smsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
             <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-all ${smsEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
@@ -462,7 +483,25 @@ function SmsSection({ getValue, setValue, saveSection }: {
         </div>
       </div>
 
-      {/* Twilio Credentials */}
+      {/* Email Enable */}
+      <div className="flex items-center justify-between py-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-4">
+        <div className="flex items-center gap-3">
+          <Mail className="w-5 h-5 text-blue-500" />
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Service</p>
+            <p className="text-xs text-gray-500">Send receipt emails on checkout</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium ${emailEnabled ? 'text-blue-600' : 'text-gray-400'}`}>{emailEnabled ? 'On' : 'Off'}</span>
+          <button onClick={() => setValue('emailEnabled', emailEnabled ? 'false' : 'true')}
+            className={`w-11 h-6 rounded-full transition-all ${emailEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
+            <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-all ${emailEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Twilio Credentials ── */}
       <div className={`space-y-3 ${!smsEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
           <div className="flex items-start gap-3">
@@ -470,7 +509,7 @@ function SmsSection({ getValue, setValue, saveSection }: {
             <div>
               <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Twilio Configuration</p>
               <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">
-                Enter your Twilio credentials to enable SMS notifications. You can find these in your{' '}
+                Enter your Twilio credentials. Find them in your{' '}
                 <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">Twilio Console</a>.
               </p>
             </div>
@@ -479,99 +518,176 @@ function SmsSection({ getValue, setValue, saveSection }: {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account SID</label>
-          <input
-            type="text"
-            value={getValue('twilioAccountSid')}
-            onChange={e => setValue('twilioAccountSid', e.target.value)}
-            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono"
-          />
+          <input type="text" value={getValue('twilioAccountSid')} onChange={e => setValue('twilioAccountSid', e.target.value)}
+            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auth Token</label>
-          <input
-            type="password"
-            value={getValue('twilioAuthToken')}
-            onChange={e => setValue('twilioAuthToken', e.target.value)}
-            placeholder="••••••••••••••••••••••••••••••••"
-            className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono"
-          />
+          <input type="password" value={getValue('twilioAuthToken')} onChange={e => setValue('twilioAuthToken', e.target.value)}
+            placeholder="••••••••••••••••••••••••••••••••" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Twilio Phone Number</label>
+          <input type="text" value={getValue('twilioPhoneNumber')} onChange={e => setValue('twilioPhoneNumber', e.target.value)}
+            placeholder="+1234567890" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
+        </div>
+      </div>
+
+      {/* ── Email Provider Configuration ── */}
+      <div className={`space-y-3 ${!emailEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Mail className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Email Configuration</p>
+              <p className="text-xs text-purple-600/70 dark:text-purple-400/70 mt-1">
+                Use <strong>Resend</strong> (easiest — 100 emails/day free, no domain verification needed),{' '}
+                <strong>SendGrid</strong>, or your own SMTP server.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Twilio Phone Number</label>
-          <input
-            type="text"
-            value={getValue('twilioPhoneNumber')}
-            onChange={e => setValue('twilioPhoneNumber', e.target.value)}
-            placeholder="+1234567890"
-            className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono"
-          />
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Provider</label>
+          <select value={getValue('emailProvider', 'resend')} onChange={e => setValue('emailProvider', e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
+            <option value="resend">Resend (Recommended — easiest setup)</option>
+            <option value="sendgrid">SendGrid</option>
+            <option value="smtp">Custom SMTP</option>
+          </select>
         </div>
 
-        {/* SMS Notification Preferences */}
-        <div className="border-t pt-4 mt-4 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">SMS Notification Triggers</h3>
-          {[
-            ['smsOnOrderConfirm', 'Order Confirmation SMS', 'Send SMS when an order is confirmed'],
-            ['smsOnOrderReady', 'Order Ready SMS', 'Send SMS when an order is ready for pickup'],
-            ['smsOnLoyaltyReward', 'Loyalty Reward SMS', 'Send SMS when loyalty points are earned'],
-          ].map(([key, label, desc]) => (
-            <div key={key} className="flex items-center justify-between py-2.5">
+        {getValue('emailProvider', 'resend') === 'resend' ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resend API Key</label>
+            <input type="password" value={getValue('resendApiKey')} onChange={e => setValue('resendApiKey', e.target.value)}
+              placeholder="re_xxxxxxxxxxxxxxxxxxxx" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
+            <p className="text-xs text-gray-400 mt-1">
+              Sign up free at <a href="https://resend.com/signup" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">resend.com</a> → API Keys → Create.
+              Use <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">onboarding@resend.dev</code> as sender email for testing.
+            </p>
+          </div>
+        ) : getValue('emailProvider', 'resend') === 'sendgrid' ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SendGrid API Key</label>
+            <input type="password" value={getValue('sendgridApiKey')} onChange={e => setValue('sendgridApiKey', e.target.value)}
+              placeholder="SG.xxxxxxxxxxxxxxxxxxxx" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
+            <p className="text-xs text-gray-400 mt-1">Go to <a href="https://app.sendgrid.com/settings/api_keys" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">SendGrid → API Keys</a> → Create API Key → Full Access</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</p>
-                <p className="text-xs text-gray-500">{desc}</p>
+                <label className="block text-xs font-medium text-gray-500 mb-1">SMTP Host</label>
+                <input type="text" value={getValue('smtpHost')} onChange={e => setValue('smtpHost', e.target.value)}
+                  placeholder="smtp.gmail.com" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
               </div>
-              <button onClick={() => setValue(key, getValue(key) === 'true' ? 'false' : 'true')}
-                className={`w-11 h-6 rounded-full transition-all shrink-0 ml-4 ${getValue(key) === 'true' ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-all ${getValue(key) === 'true' ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </button>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">SMTP Port</label>
+                <input type="number" value={getValue('smtpPort', '587')} onChange={e => setValue('smtpPort', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+              </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">SMTP Username</label>
+                <input type="text" value={getValue('smtpUser')} onChange={e => setValue('smtpUser', e.target.value)}
+                  placeholder="your@email.com" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">SMTP Password</label>
+                <input type="password" value={getValue('smtpPass')} onChange={e => setValue('smtpPass', e.target.value)}
+                  placeholder="••••••••" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sender Name</label>
+            <input type="text" value={getValue('senderName', 'MyPOS')} onChange={e => setValue('senderName', e.target.value)}
+              placeholder="MyPOS" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sender Email</label>
+            <input type="email" value={getValue('senderEmail')} onChange={e => setValue('senderEmail', e.target.value)}
+              placeholder="noreply@yourdomain.com" className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── SMS Receipt Templates ── */}
+      <div className={`border-t pt-4 dark:border-gray-700 ${!smsEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">SMS Receipt Template</h3>
+        <p className="text-xs text-gray-500 mb-3">Choose which SMS template to send with order receipts. Variables: {'{orderNumber}'} (mandatory), {'{customerName}'}, {'{total}'}, {'{businessName}'}</p>
+        <div className="space-y-2">
+          {smsTemplates.map(t => (
+            <label key={t.id} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+              getValue('smsReceiptTemplate', '1') === t.id
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}>
+              <input type="radio" name="smsTemplate" value={t.id}
+                checked={getValue('smsReceiptTemplate', '1') === t.id}
+                onChange={() => setValue('smsReceiptTemplate', t.id)}
+                className="mt-1 accent-blue-600" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Template {t.id}</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200 break-words">{t.preview}</p>
+              </div>
+            </label>
           ))}
         </div>
+      </div>
+
+      {/* ── Test SMS & Email ── */}
+      <div className="border-t pt-4 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Test Notifications</h3>
 
         {/* Test SMS */}
-        <div className="border-t pt-4 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Send Test SMS</h3>
+        <div className={`mb-4 ${!smsEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Test SMS</label>
           <div className="flex gap-2">
-            <input
-              type="tel"
-              value={testPhone}
-              onChange={e => setTestPhone(e.target.value)}
-              placeholder="+1234567890"
-              className="flex-1 px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono"
-            />
-            <button
-              onClick={sendTestSms}
-              disabled={testStatus === 'sending'}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50 whitespace-nowrap"
-            >
-              {testStatus === 'sending' ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</>
-              ) : (
-                <><Send className="w-4 h-4" /> Send Test</>
-              )}
+            <input type="tel" value={testPhone} onChange={e => setTestPhone(e.target.value)} placeholder="+1234567890"
+              className="flex-1 px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600 font-mono" />
+            <button onClick={sendTestSms} disabled={smsTestStatus === 'sending'}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50 whitespace-nowrap">
+              {smsTestStatus === 'sending' ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</> : <><Send className="w-4 h-4" /> Send SMS</>}
             </button>
           </div>
-          {testStatus === 'success' && (
-            <div className="flex items-center gap-2 mt-2 text-green-600 text-xs">
-              <CheckCircle className="w-4 h-4" /> Test SMS sent successfully!
-            </div>
-          )}
-          {testStatus === 'error' && (
-            <div className="flex items-center gap-2 mt-2 text-red-500 text-xs">
-              <XCircle className="w-4 h-4" /> {testError}
-            </div>
-          )}
+          {smsTestStatus === 'success' && <div className="flex items-center gap-2 mt-1.5 text-green-600 text-xs"><CheckCircle className="w-3.5 h-3.5" /> Test SMS sent!</div>}
+          {smsTestStatus === 'error' && <div className="flex items-center gap-2 mt-1.5 text-red-500 text-xs"><XCircle className="w-3.5 h-3.5" /> {smsTestError}</div>}
+        </div>
+
+        {/* Test Email */}
+        <div className={`${!emailEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Test Email</label>
+          <div className="flex gap-2">
+            <input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="test@example.com"
+              className="flex-1 px-3 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600" />
+            <button onClick={sendTestEmail} disabled={emailTestStatus === 'sending'}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap">
+              {emailTestStatus === 'sending' ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</> : <><Mail className="w-4 h-4" /> Send Email</>}
+            </button>
+          </div>
+          {emailTestStatus === 'success' && <div className="flex items-center gap-2 mt-1.5 text-green-600 text-xs"><CheckCircle className="w-3.5 h-3.5" /> Test email sent!</div>}
+          {emailTestStatus === 'error' && <div className="flex items-center gap-2 mt-1.5 text-red-500 text-xs"><XCircle className="w-3.5 h-3.5" /> {emailTestError}</div>}
         </div>
       </div>
 
       <button
-        onClick={() => saveSection(['smsEnabled', 'twilioAccountSid', 'twilioAuthToken', 'twilioPhoneNumber', 'smsOnOrderConfirm', 'smsOnOrderReady', 'smsOnLoyaltyReward'], 'sms')}
+        onClick={() => saveSection([
+          'smsEnabled', 'emailEnabled',
+          'twilioAccountSid', 'twilioAuthToken', 'twilioPhoneNumber',
+          'emailProvider', 'resendApiKey', 'sendgridApiKey', 'senderEmail', 'senderName',
+          'smtpHost', 'smtpPort', 'smtpUser', 'smtpPass',
+          'smsReceiptTemplate',
+        ], 'sms')}
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700"
       >
-        <Save className="w-4 h-4" /> Save SMS Settings
+        <Save className="w-4 h-4" /> Save Settings
       </button>
     </div>
   );
