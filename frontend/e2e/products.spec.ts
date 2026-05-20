@@ -85,15 +85,17 @@ test.describe('Products Page', () => {
   test.describe('Add Product Modal', () => {
     test('should open modal with all form fields', async ({ page }) => {
       await page.getByRole('button', { name: /Add Product/ }).click();
-      await expect(page.getByText('New Product')).toBeVisible();
-      await expect(page.getByText('Name')).toBeVisible();
-      await expect(page.getByText('Price')).toBeVisible();
+      const modal = page.locator('.fixed.inset-0');
+      await expect(modal.getByText('New Product')).toBeVisible();
+      await expect(modal.getByText('Name *')).toBeVisible();
+      await expect(modal.getByText('Price *')).toBeVisible();
     });
 
     test('should display category dropdown in modal', async ({ page }) => {
       await page.getByRole('button', { name: /Add Product/ }).click();
-      await expect(page.getByText('New Product')).toBeVisible();
-      await expect(page.getByText('Category')).toBeVisible();
+      const modal = page.locator('.fixed.inset-0');
+      await expect(modal.getByText('New Product')).toBeVisible();
+      await expect(modal.getByText('Category')).toBeVisible();
     });
 
     test('should close modal via X button', async ({ page }) => {

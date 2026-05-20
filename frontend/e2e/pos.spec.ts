@@ -101,10 +101,13 @@ test.describe('POS Page', () => {
     });
 
     test('should increment quantity when adding same product', async ({ page }) => {
-      await expect(page.getByText('Espresso')).toBeVisible({ timeout: 15000 });
-      await page.getByText('Espresso').first().click();
-      await page.getByText('Espresso').first().click();
-      await expect(page.getByText('Cart (2)')).toBeVisible();
+      const productGrid = page.locator('.grid.grid-cols-2');
+      await expect(productGrid.getByText('Espresso')).toBeVisible({ timeout: 15000 });
+      await productGrid.getByText('Espresso').first().click();
+      await expect(page.getByText('Cart (1)')).toBeVisible();
+      await productGrid.getByText('Espresso').first().click();
+      // Cart still shows (1) unique item, but quantity should be 2
+      await expect(page.getByText('$7.00').first()).toBeVisible();
     });
 
     test('should add multiple different products to cart', async ({ page }) => {

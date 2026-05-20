@@ -86,9 +86,9 @@ test.describe('Customers Page', () => {
     test('should open loyalty modal for a customer', async ({ page }) => {
       await expect(page.getByText('John Doe')).toBeVisible({ timeout: 15000 });
       // Click the Loyalty button on the first customer card
-      const customerCard = page.locator('.bg-white, .dark\\:bg-gray-800').filter({ hasText: 'John Doe' }).first();
+      const customerCard = page.locator('.shadow-card').filter({ hasText: 'John Doe' }).first();
       await customerCard.getByRole('button', { name: /Loyalty/i }).click();
-      await expect(page.getByText('Loyalty Program')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Loyalty Program' })).toBeVisible({ timeout: 5000 });
       await expect(page.getByText('Available Points')).toBeVisible();
     });
   });

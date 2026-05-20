@@ -43,8 +43,8 @@ test.describe('Kitchen Page', () => {
 
     test('should show order items with quantities', async ({ page }) => {
       await expect(page.getByText(/^ORD-/).first()).toBeVisible({ timeout: 15000 });
-      // Order cards show items like "2x Classic Burger"
-      await expect(page.getByText(/\d+x\s/).first()).toBeVisible();
+      // Order cards show items like "2x" in a span
+      await expect(page.getByText(/^\d+x$/).first()).toBeVisible();
     });
 
     test('should show elapsed time on order cards', async ({ page }) => {
