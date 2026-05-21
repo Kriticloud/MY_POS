@@ -23,9 +23,17 @@ test.describe('Kitchen Page', () => {
       const response = await route.fetch();
       const json = await response.json();
       if (json.data) {
-        json.data = json.data.map((s: any) => s.key === 'businessType' ? { ...s, value: 'RESTAURANT' } : s);
+        json.data = json.data.map((s: any) => {
+          if (s.key === 'businessType') return { ...s, value: 'RESTAURANT' };
+          if (s.key === 'currency') return { ...s, value: 'USD' };
+          return s;
+        });
       }
       await route.fulfill({ json });
+    });
+    await page.addInitScript(() => {
+      localStorage.removeItem('mypos-settings');
+      localStorage.removeItem('i18n-storage');
     });
 
     // Ensure active orders exist BEFORE navigating to kitchen

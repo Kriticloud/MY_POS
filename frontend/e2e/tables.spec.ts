@@ -6,9 +6,17 @@ test.describe('Tables Page', () => {
       const response = await route.fetch();
       const json = await response.json();
       if (json.data) {
-        json.data = json.data.map((s: any) => s.key === 'businessType' ? { ...s, value: 'RESTAURANT' } : s);
+        json.data = json.data.map((s: any) => {
+          if (s.key === 'businessType') return { ...s, value: 'RESTAURANT' };
+          if (s.key === 'currency') return { ...s, value: 'USD' };
+          return s;
+        });
       }
       await route.fulfill({ json });
+    });
+    await page.addInitScript(() => {
+      localStorage.removeItem('mypos-settings');
+      localStorage.removeItem('i18n-storage');
     });
     await page.goto('/tables');
   });
@@ -24,9 +32,9 @@ test.describe('Tables Page', () => {
     });
 
     test('should display status legend', async ({ page }) => {
-      await expect(page.getByText('AVAILABLE')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByText('OCCUPIED')).toBeVisible();
-      await expect(page.getByText('RESERVED')).toBeVisible();
+      await expect(page.getByText('AVAILABLE').first()).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText('OCCUPIED').first()).toBeVisible();
+      await expect(page.getByText('RESERVED').first()).toBeVisible();
     });
   });
 
