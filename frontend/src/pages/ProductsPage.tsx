@@ -100,55 +100,122 @@ export function ProductsPage() {
         </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input type="text" placeholder="Search by name, SKU, or barcode..." value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+      {/* Search + Category Filter */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input type="text" placeholder="Search by name, SKU, or barcode..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+        </div>
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <select value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(1); }}
+            className="pl-10 pr-8 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none min-w-[160px]">
+            <option value="">All Categories</option>
+            {(categories || []).map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        {pagination && (
+          <div className="flex items-center text-sm text-gray-500 ml-auto whitespace-nowrap">
+            <Package className="w-4 h-4 mr-1" /> {pagination.total} {pagination.total === 1 ? labels.product : labels.products}
+          </div>
+        )}
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card overflow-hidden">
         {isLoading ? <div className="p-6"><Skeleton className="h-60 w-full" /></div> : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[700px]">
               <thead><tr className="text-xs text-gray-500 uppercase border-b border-gray-100 dark:border-gray-700">
                 <th className="text-left p-4">Product</th><th className="text-left p-4">SKU</th>
                 <th className="text-left p-4">Category</th><th className="text-left p-4">Price</th>
-                <th className="text-left p-4">Cost</th><th className="text-left p-4">Actions</th>
+                <th className="text-left p-4">Cost</th><th className="text-left p-4">Status</th><th className="text-left p-4">Actions</th>
               </tr></thead>
               <tbody>
                 {(products || []).map((p: any) => (
                   <tr key={p.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center text-lg overflow-hidden">
+                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                           {p.image ? (
                             <img src={p.image} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
                           ) : (
                             p.category?.icon || '📦'
                           )}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{p.name}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</p>
                           <p className="text-xs text-gray-500">{p.barcode || '-'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 text-sm text-gray-600">{p.sku || '-'}</td>
-                    <td className="p-4 text-sm text-gray-600">{p.category?.name || '-'}</td>
-                    <td className="p-4 text-sm font-medium">{formatCurrency(p.price)}</td>
-                    <td className="p-4 text-sm text-gray-500">{p.costPrice ? formatCurrency(p.costPrice) : '-'}</td>
+                    <td className="p-4 text-sm text-gray-600 dark:text-gray-400">{p.sku || '-'}</td>
+                    <td className="p-4">
+                      {p.category ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${p.category.color || '#6366f1'}20`, color: p.category.color || '#6366f1' }}>
+                          {p.category.name}
+                        </span>
+                      ) : <span className="text-sm text-gray-400">-</span>}
+                    </td>
+                    <td className="p-4 text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(p.price)}</td>
+                    <td className="p-4 text-sm text-gray-500">
+                      {p.costPrice ? (
+                        <div>
+                          <span>{formatCurrency(p.costPrice)}</span>
+                          <span className="block text-xs text-green-600">{Math.round(((p.price - p.costPrice) / p.price) * 100)}% margin</span>
+                        </div>
+                      ) : '-'}
+                    </td>
+                    <td className="p-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.isActive !== false ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
+                        {p.isActive !== false ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
                     <td className="p-4">
                       <div className="flex items-center gap-1">
                         <button onClick={() => printBarcodeLabel({ name: p.name, barcode: p.barcode, sku: p.sku, price: p.price })} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" title="Print barcode"><Barcode className="w-4 h-4 text-gray-500" /></button>
-                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><Edit className="w-4 h-4 text-gray-500" /></button>
-                        <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 text-red-400" /></button>
+                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30" title="Edit product"><Edit className="w-4 h-4 text-blue-500" /></button>
+                        <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30" title="Delete product"><Trash2 className="w-4 h-4 text-red-400" /></button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {(products || []).length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No {labels.products.toLowerCase()} found</td></tr>}
+                {(products || []).length === 0 && <tr><td colSpan={7} className="p-8 text-center text-gray-400">No {labels.products.toLowerCase()} found</td></tr>}
               </tbody>
             </table>
+          </div>
+        )}
+        {/* Pagination */}
+        {pagination && pagination.pages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+            <p className="text-sm text-gray-500">
+              Showing {((page - 1) * LIMIT) + 1}-{Math.min(page * LIMIT, pagination.total)} of {pagination.total}
+            </p>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed" title="Previous page">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === pagination.pages || Math.abs(p - page) <= 1)
+                .reduce<(number | string)[]>((acc, p, i, arr) => {
+                  if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('...');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) => typeof p === 'string' ? (
+                  <span key={`dot-${i}`} className="px-1 text-gray-400">...</span>
+                ) : (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium ${page === p ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                    {p}
+                  </button>
+                ))}
+              <button onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page >= pagination.pages}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed" title="Next page">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
