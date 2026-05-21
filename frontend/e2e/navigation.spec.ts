@@ -100,7 +100,7 @@ test.describe('Navigation', () => {
     test('should handle mobile viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto('/dashboard');
-      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/Good (morning|afternoon|evening|night)/)).toBeVisible({ timeout: 15000 });
     });
   });
 });

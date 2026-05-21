@@ -30,7 +30,7 @@ test.describe('Authentication', () => {
       await page.getByRole('button', { name: 'Sign In' }).click();
 
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
-      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/Good (morning|afternoon|evening|night)/)).toBeVisible({ timeout: 15000 });
     });
 
     test('should login with valid cashier credentials', async ({ page }) => {
@@ -76,7 +76,7 @@ test.describe('Authentication', () => {
 
       await page.reload();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
-      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/Good (morning|afternoon|evening|night)/)).toBeVisible({ timeout: 15000 });
     });
   });
 });

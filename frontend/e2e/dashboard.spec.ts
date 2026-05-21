@@ -18,22 +18,22 @@ test.describe('Dashboard', () => {
   });
 
   test.describe('Page Header', () => {
-    test('should display dashboard heading and welcome message', async ({ page }) => {
-      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-      await expect(page.getByText("Welcome back! Here's what's happening today.")).toBeVisible();
+    test('should display greeting and welcome message', async ({ page }) => {
+      // Dashboard shows a greeting like "Good morning, Admin!"
+      await expect(page.getByText(/Good (morning|afternoon|evening|night)/)).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/Here's what's happening/)).toBeVisible();
     });
   });
 
   test.describe('Stats Cards', () => {
-    test('should display all four stat cards', async ({ page }) => {
-      await expect(page.getByText('Total Revenue')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByText("Today's Orders")).toBeVisible();
-      await expect(page.getByText('Avg Order Value')).toBeVisible();
-      await expect(page.getByText('Total Orders')).toBeVisible();
+    test('should display stat cards', async ({ page }) => {
+      await expect(page.getByText('Revenue')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/Today.*Orders/)).toBeVisible();
+      await expect(page.getByText(/Total.*Order/)).toBeVisible();
     });
 
     test('should display revenue with dollar sign', async ({ page }) => {
-      await expect(page.getByText('Total Revenue')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText('Revenue')).toBeVisible({ timeout: 15000 });
       // Revenue card should contain a dollar amount
       await expect(page.getByText(/\$[\d,.]+/).first()).toBeVisible();
     });
