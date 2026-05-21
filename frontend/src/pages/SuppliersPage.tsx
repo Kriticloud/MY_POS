@@ -11,7 +11,8 @@ export function SuppliersPage() {
   const [tab, setTab] = useState<Tab>('suppliers');
   const { data: suppliers, isLoading } = useSuppliers();
   const { data: purchaseOrders } = usePurchaseOrders();
-  const { data: products } = useProducts();
+  const { data: productData } = useProducts();
+  const products = productData?.products;
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier();
   const deleteSupplier = useDeleteSupplier();

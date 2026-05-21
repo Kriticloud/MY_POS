@@ -49,7 +49,8 @@ export function POSPage() {
 
   const barcodeRef = useRef<HTMLInputElement>(null);
   const businessType = useSettingsStore((s) => s.businessType);
-  const { data: apiProducts } = useProducts({ businessType });
+  const { data: productData } = useProducts({ businessType });
+  const apiProducts = productData?.products;
   const { data: apiCategories } = useCategories({ businessType });
   const { data: customers } = useCustomers({ search: customerSearch || undefined });
   const { data: allSettings } = useSettings();

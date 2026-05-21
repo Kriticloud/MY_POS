@@ -3,12 +3,12 @@ import { api } from '../services/api';
 import type { Product, Category, Order, Customer, Table, Employee, InventoryItem, AuditLog, LoyaltyTransaction, ApiResponse } from '../types';
 
 // Products
-export function useProducts(params?: { search?: string; categoryId?: string; businessType?: string }) {
+export function useProducts(params?: { search?: string; categoryId?: string; businessType?: string; page?: number; limit?: number }) {
   return useQuery({
     queryKey: ['products', params],
     queryFn: async () => {
       const { data } = await api.get<ApiResponse<Product[]>>('/products', { params });
-      return data.data;
+      return { products: data.data, pagination: (data as any).pagination as { page: number; limit: number; total: number; pages: number } | undefined };
     },
   });
 }

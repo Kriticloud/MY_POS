@@ -132,7 +132,7 @@ export function OrdersPage() {
               </tr></thead>
               <tbody>
                 {filteredOrders.map((order: any) => (
-                  <tr key={order.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                  <tr key={order.id} onClick={() => setSelectedOrder(order)} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer">
                     <td className="p-4 font-medium text-sm">{order.orderNumber}</td>
                     <td className="p-4 text-sm text-gray-600">{order.customer ? `${order.customer.firstName} ${order.customer.lastName || ''}` : 'Walk-in'}</td>
                     <td className="p-4"><span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs">{order.orderType?.replace('_', ' ')}</span></td>
@@ -141,7 +141,7 @@ export function OrdersPage() {
                     <td className="p-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[order.status] || ''}`}>{order.status}</span></td>
                     <td className="p-4 text-sm text-gray-500">{formatDate(new Date(order.createdAt))}</td>
                     <td className="p-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => setSelectedOrder(order)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><Eye className="w-4 h-4 text-gray-500" /></button>
                         {nextStatus[order.status] && (
                           <button onClick={() => handleStatusUpdate(order.id, nextStatus[order.status])}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit, Trash2, Package, X, Barcode, Download, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, X, Barcode, Download, Upload, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 import { useProducts, useCategories, useCreateProduct, useUpdateProduct, useDeleteProduct } from '../hooks/useApi';
 import { useSettingsStore, getPageTitle, getBusinessConfig, getEntityLabels } from '../store/settingsStore';
@@ -18,9 +18,14 @@ export function ProductsPage() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState('');
+  const [page, setPage] = useState(1);
+  const LIMIT = 20;
 
   const businessType = useSettingsStore((s) => s.businessType);
-  const { data: products, isLoading } = useProducts({ search: search || undefined, businessType });
+  const { data: productData, isLoading } = useProducts({ search: search || undefined, categoryId: filterCategory || undefined, businessType, page, limit: LIMIT });
+  const products = productData?.products;
+  const pagination = productData?.pagination;
   const { data: categories } = useCategories({ businessType });
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
