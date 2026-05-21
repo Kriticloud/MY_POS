@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react';
 import { formatCurrency } from '../utils/helpers';
-import { BarChart3, TrendingUp, ShoppingBag, DollarSign, Download, Users, Calendar, Percent, FileText, Clock, Play, Trash2 } from 'lucide-react';
-import { useSalesReport, useTopProducts, useOrders, useStaffPerformance, useMarginReport, useScheduledReports, useCreateScheduledReport, useRunScheduledReport, useDeleteScheduledReport } from '../hooks/useApi';
+import { BarChart3, TrendingUp, ShoppingBag, DollarSign, Download, Users, Calendar, Percent, FileText, Clock, Play, Trash2, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useSalesReport, useTopProducts, useOrders, useStaffPerformance, useMarginReport, useScheduledReports, useCreateScheduledReport, useRunScheduledReport, useDeleteScheduledReport, useCashDrawerSessions } from '../hooks/useApi';
 import { useSettingsStore } from '../store/settingsStore';
 import { Skeleton } from '../components/ui/Skeleton';
 import { SimpleBarChart, SimpleDonutChart } from '../components/Charts';
 import { exportOrdersReport } from '../services/pdfExport';
 import toast from 'react-hot-toast';
 
-type ReportTab = 'overview' | 'products' | 'staff' | 'margins' | 'scheduled';
+type ReportTab = 'overview' | 'products' | 'staff' | 'margins' | 'cash' | 'scheduled';
 
 export function ReportsPage() {
   const [tab, setTab] = useState<ReportTab>('overview');
@@ -29,6 +29,7 @@ export function ReportsPage() {
   const { data: orders } = useOrders();
   const { data: staffPerf } = useStaffPerformance();
   const { data: margins } = useMarginReport();
+  const { data: cashSessions } = useCashDrawerSessions();
   const businessName = useSettingsStore((s) => s.businessName);
 
   const paymentBreakdown = (orders || []).reduce((acc: Record<string, number>, o: any) => {
@@ -97,7 +98,7 @@ export function ReportsPage() {
 
       {/* Report Tabs */}
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 overflow-x-auto">
-        {([{ key: 'overview', label: 'Overview' }, { key: 'products', label: 'Products' }, { key: 'staff', label: 'Staff Performance' }, { key: 'margins', label: 'Margins' }, { key: 'scheduled', label: 'Scheduled' }] as const).map(t => (
+        {([{ key: 'overview', label: 'Overview' }, { key: 'products', label: 'Products' }, { key: 'staff', label: 'Staff Performance' }, { key: 'margins', label: 'Margins' }, { key: 'cash', label: 'Cash Drawer' }, { key: 'scheduled', label: 'Scheduled' }] as const).map(t => (
           <button key={t.key} onClick={() => setTab(t.key as ReportTab)}
             className={`flex-1 py-2 rounded-lg text-sm font-medium ${tab === t.key ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>
             {t.label}
@@ -245,6 +246,106 @@ export function ReportsPage() {
                 {(margins || []).length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No margin data</td></tr>}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {tab === 'cash' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold flex items-center gap-2"><Wallet className="w-5 h-5 text-green-500" /> Cash Drawer Reconciliation</h2>
+            <button onClick={() => exportCSV(
+              (cashSessions || []).map((s: any) => ({
+                Date: new Date(s.openedAt).toLocaleDateString(), Cashier: s.user ? `${s.user.firstName} ${s.user.lastName}` : '-',
+                Opening: s.openingBalance?.toFixed(2), Expected: s.expectedBalance?.toFixed(2),
+                Actual: s.closingBalance?.toFixed(2), Difference: s.difference?.toFixed(2),
+                Status: s.closedAt ? (Math.abs(s.difference || 0) < 0.01 ? 'Balanced' : s.difference > 0 ? 'Over' : 'Short') : 'Open',
+              })), 'cash-reconciliation'
+            )} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700">
+              <Download className="w-3 h-3" /> Export
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          {(() => {
+            const closed = (cashSessions || []).filter((s: any) => s.closedAt);
+            const totalOver = closed.filter((s: any) => (s.difference || 0) > 0.01).reduce((sum: number, s: any) => sum + s.difference, 0);
+            const totalShort = closed.filter((s: any) => (s.difference || 0) < -0.01).reduce((sum: number, s: any) => sum + Math.abs(s.difference), 0);
+            const balanced = closed.filter((s: any) => Math.abs(s.difference || 0) <= 0.01).length;
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-card">
+                  <p className="text-xs text-gray-500">Total Sessions</p>
+                  <p className="text-2xl font-bold">{cashSessions?.length || 0}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-card">
+                  <p className="text-xs text-gray-500">Balanced</p>
+                  <p className="text-2xl font-bold text-green-600">{balanced}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-card">
+                  <p className="text-xs text-gray-500">Total Over</p>
+                  <p className="text-2xl font-bold text-blue-600 flex items-center gap-1"><ArrowUpRight className="w-4 h-4" />{formatCurrency(totalOver)}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-card">
+                  <p className="text-xs text-gray-500">Total Short</p>
+                  <p className="text-2xl font-bold text-red-600 flex items-center gap-1"><ArrowDownRight className="w-4 h-4" />{formatCurrency(totalShort)}</p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Sessions Table */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-700/50">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium">Date</th>
+                    <th className="text-left px-4 py-3 font-medium">Cashier</th>
+                    <th className="text-right px-4 py-3 font-medium">Opening</th>
+                    <th className="text-right px-4 py-3 font-medium">Expected</th>
+                    <th className="text-right px-4 py-3 font-medium">Actual</th>
+                    <th className="text-right px-4 py-3 font-medium">Difference</th>
+                    <th className="text-center px-4 py-3 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y dark:divide-gray-700">
+                  {(cashSessions || []).map((s: any) => {
+                    const diff = s.difference || 0;
+                    const isOpen = !s.closedAt;
+                    const status = isOpen ? 'open' : Math.abs(diff) <= 0.01 ? 'balanced' : diff > 0 ? 'over' : 'short';
+                    return (
+                      <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{new Date(s.openedAt).toLocaleDateString()}</p>
+                          <p className="text-xs text-gray-400">{new Date(s.openedAt).toLocaleTimeString()} — {s.closedAt ? new Date(s.closedAt).toLocaleTimeString() : 'Now'}</p>
+                        </td>
+                        <td className="px-4 py-3">{s.user ? `${s.user.firstName} ${s.user.lastName}` : '-'}</td>
+                        <td className="px-4 py-3 text-right font-mono">{formatCurrency(s.openingBalance || 0)}</td>
+                        <td className="px-4 py-3 text-right font-mono">{s.expectedBalance != null ? formatCurrency(s.expectedBalance) : '-'}</td>
+                        <td className="px-4 py-3 text-right font-mono">{s.closingBalance != null ? formatCurrency(s.closingBalance) : '-'}</td>
+                        <td className={`px-4 py-3 text-right font-mono font-bold ${diff > 0.01 ? 'text-blue-600' : diff < -0.01 ? 'text-red-600' : 'text-green-600'}`}>
+                          {isOpen ? '-' : (diff > 0 ? '+' : '') + formatCurrency(diff)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            status === 'open' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                            status === 'balanced' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            status === 'over' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}>
+                            {status === 'open' ? 'Open' : status === 'balanced' ? 'Balanced' : status === 'over' ? 'Over' : 'Short'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {(!cashSessions || cashSessions.length === 0) && (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No cash drawer sessions found</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

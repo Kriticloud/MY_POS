@@ -317,6 +317,21 @@ export function useClockOut() {
   });
 }
 
+// Shift Scheduling
+export function useShiftSchedule() {
+  return useQuery({
+    queryKey: ['shift-schedule'],
+    queryFn: async () => { const { data } = await api.get('/settings/shiftSchedule'); return data.value ? JSON.parse(data.value) : []; },
+  });
+}
+export function useSaveShiftSchedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (shifts: any[]) => { const { data } = await api.put('/settings/shiftSchedule', { value: JSON.stringify(shifts) }); return data; },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shift-schedule'] }),
+  });
+}
+
 // Additional Reports
 export function useStaffPerformance() {
   return useQuery({

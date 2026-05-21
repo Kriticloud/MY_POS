@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { formatCurrency } from '../utils/helpers';
-import { Clock, UserCheck, UserX, ChevronRight, Activity, DollarSign, ShoppingBag } from 'lucide-react';
+import { Clock, UserCheck, UserX, ChevronRight, Activity, DollarSign, ShoppingBag, CalendarDays, Plus, Trash2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useEmployees, useClockIn, useClockOut } from '../hooks/useApi';
+import { useEmployees, useClockIn, useClockOut, useShiftSchedule, useSaveShiftSchedule } from '../hooks/useApi';
 import { Skeleton } from '../components/ui/Skeleton';
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
 export function EmployeesPage() {
   const { data: employees, isLoading } = useEmployees();
   const clockIn = useClockIn();
   const clockOut = useClockOut();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [tab, setTab] = useState<'roster' | 'schedule'>('roster');
 
   const handleClockIn = async (id: string) => {
     try { await clockIn.mutateAsync(id); toast.success('Clocked in successfully'); } catch { toast.error('Failed to clock in'); }
@@ -27,6 +31,18 @@ export function EmployeesPage() {
         <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Employee Management</h1>
         <p className="text-gray-500 mt-1">Track shifts, clock in/out, and performance</p>
       </div>
+
+      {/* Tab Bar */}
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+        <button onClick={() => setTab('roster')} className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 ${tab === 'roster' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>
+          <UserCheck className="w-4 h-4" /> Staff Roster
+        </button>
+        <button onClick={() => setTab('schedule')} className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 ${tab === 'schedule' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>
+          <CalendarDays className="w-4 h-4" /> Shift Schedule
+        </button>
+      </div>
+
+      {tab === 'roster' && (<>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -123,6 +139,151 @@ export function EmployeesPage() {
           </div>
         </div>
       )}
+      </>)}
+
+      {tab === 'schedule' && <ShiftScheduleTab employees={employees || []} />}
+    </div>
+  );
+}
+
+function ShiftScheduleTab({ employees }: { employees: any[] }) {
+  const { data: shifts, isLoading } = useShiftSchedule();
+  const saveShifts = useSaveShiftSchedule();
+  const [localShifts, setLocalShifts] = useState<any[]>([]);
+  const [dirty, setDirty] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // Sync from server
+  useMemo(() => {
+    if (shifts && !dirty) setLocalShifts(shifts);
+  }, [shifts]);
+
+  const getWeekStart = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay() + 1 + weekOffset * 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+  const weekStart = getWeekStart();
+  const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(weekStart.getTime() + 6 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+  const weekKey = weekStart.toISOString().slice(0, 10);
+  const weekShifts = localShifts.filter((s: any) => s.weekKey === weekKey);
+
+  const addShift = (dayIndex: number) => {
+    const newShift = {
+      id: Date.now().toString(),
+      weekKey,
+      dayIndex,
+      employeeId: employees[0]?.id || '',
+      startTime: '09:00',
+      endTime: '17:00',
+    };
+    setLocalShifts(prev => [...prev, newShift]);
+    setDirty(true);
+  };
+
+  const updateShift = (id: string, field: string, val: string) => {
+    setLocalShifts(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s));
+    setDirty(true);
+  };
+
+  const removeShift = (id: string) => {
+    setLocalShifts(prev => prev.filter(s => s.id !== id));
+    setDirty(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      await saveShifts.mutateAsync(localShifts);
+      setDirty(false);
+      toast.success('Shift schedule saved');
+    } catch { toast.error('Failed to save schedule'); }
+  };
+
+  const getEmployeeName = (id: string) => {
+    const emp = employees.find(e => e.id === id);
+    return emp ? `${emp.firstName} ${emp.lastName}` : 'Unknown';
+  };
+
+  const getHoursForEmployee = (empId: string) => {
+    return weekShifts.filter((s: any) => s.employeeId === empId).reduce((total: number, s: any) => {
+      const [sh, sm] = s.startTime.split(':').map(Number);
+      const [eh, em] = s.endTime.split(':').map(Number);
+      return total + (eh + em / 60) - (sh + sm / 60);
+    }, 0);
+  };
+
+  if (isLoading) return <Skeleton className="h-64 w-full" />;
+
+  return (
+    <div className="space-y-4">
+      {/* Week Navigation */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setWeekOffset(w => w - 1)} className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-card text-sm hover:bg-gray-50">← Prev</button>
+          <h2 className="text-lg font-bold">{weekLabel}</h2>
+          <button onClick={() => setWeekOffset(w => w + 1)} className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-card text-sm hover:bg-gray-50">Next →</button>
+          {weekOffset !== 0 && <button onClick={() => setWeekOffset(0)} className="text-xs text-blue-600 hover:underline">Today</button>}
+        </div>
+        <button onClick={handleSave} disabled={!dirty || saveShifts.isPending}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+          <Save className="w-4 h-4" /> {saveShifts.isPending ? 'Saving...' : 'Save Schedule'}
+        </button>
+      </div>
+
+      {/* Weekly Hours Summary */}
+      {employees.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {employees.map((emp: any) => {
+            const hrs = getHoursForEmployee(emp.id);
+            return hrs > 0 ? (
+              <span key={emp.id} className="px-3 py-1.5 bg-white dark:bg-gray-800 rounded-lg shadow-card text-xs">
+                <span className="font-medium">{emp.firstName}</span>: {hrs.toFixed(1)}h
+              </span>
+            ) : null;
+          })}
+        </div>
+      )}
+
+      {/* Day Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+        {DAYS.map((day, dayIdx) => {
+          const dayDate = new Date(weekStart.getTime() + dayIdx * 86400000);
+          const isToday = new Date().toDateString() === dayDate.toDateString();
+          const dayShifts = weekShifts.filter((s: any) => s.dayIndex === dayIdx);
+
+          return (
+            <div key={day} className={`bg-white dark:bg-gray-800 rounded-xl shadow-card overflow-hidden ${isToday ? 'ring-2 ring-blue-400' : ''}`}>
+              <div className={`px-3 py-2 text-center text-xs font-bold ${isToday ? 'bg-blue-600 text-white' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                {day.slice(0, 3)} {dayDate.getDate()}
+              </div>
+              <div className="p-2 space-y-1.5 min-h-[100px]">
+                {dayShifts.map((shift: any) => (
+                  <div key={shift.id} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 text-xs space-y-1">
+                    <select value={shift.employeeId} onChange={e => updateShift(shift.id, 'employeeId', e.target.value)}
+                      className="w-full px-1 py-1 rounded border text-xs dark:bg-gray-700 dark:border-gray-600 truncate">
+                      {employees.map((emp: any) => <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName[0]}.</option>)}
+                    </select>
+                    <div className="flex gap-1">
+                      <input type="time" value={shift.startTime} onChange={e => updateShift(shift.id, 'startTime', e.target.value)}
+                        className="flex-1 px-1 py-1 rounded border text-xs dark:bg-gray-700 dark:border-gray-600" />
+                      <input type="time" value={shift.endTime} onChange={e => updateShift(shift.id, 'endTime', e.target.value)}
+                        className="flex-1 px-1 py-1 rounded border text-xs dark:bg-gray-700 dark:border-gray-600" />
+                    </div>
+                    <button onClick={() => removeShift(shift.id)} className="text-red-500 hover:text-red-700 flex items-center gap-0.5">
+                      <Trash2 className="w-3 h-3" /> Remove
+                    </button>
+                  </div>
+                ))}
+                <button onClick={() => addShift(dayIdx)} className="w-full py-1.5 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg text-gray-400 text-xs hover:border-blue-300 hover:text-blue-500 flex items-center justify-center gap-1">
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
