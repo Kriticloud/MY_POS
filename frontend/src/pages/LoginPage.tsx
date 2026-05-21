@@ -7,9 +7,10 @@ import { api } from '../services/api';
 import toast from 'react-hot-toast';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem('mypos-remember-email') || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('mypos-remember-email'));
   const [loading, setLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -21,6 +22,11 @@ export function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      if (rememberMe) {
+        localStorage.setItem('mypos-remember-email', email);
+      } else {
+        localStorage.removeItem('mypos-remember-email');
+      }
       await login(email, password);
       toast.success('Welcome back!');
       navigate('/dashboard');
@@ -59,7 +65,8 @@ export function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-700 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                disabled={loading}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-700 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all disabled:opacity-50"
                 placeholder="admin@mypos.com"
                 required
               />
@@ -74,14 +81,16 @@ export function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-700 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all pr-12"
+                  disabled={loading}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-700 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all pr-12 disabled:opacity-50"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -90,7 +99,7 @@ export function LoginPage() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-gray-300" />
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded border-gray-300" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
               </label>
               <a href="#" onClick={(e) => { e.preventDefault(); setShowForgot(true); setResetEmail(email); }} className="text-sm text-primary hover:underline">
@@ -135,20 +144,23 @@ export function LoginPage() {
               <ArrowLeft className="w-4 h-4" /> Back to login
             </button>
             <h2 className="text-lg font-bold mb-2">Reset Password</h2>
-            <p className="text-sm text-gray-500 mb-4">Enter your email and we'll send a temporary password.</p>
-            <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} placeholder="your@email.com"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-700 text-sm mb-3" />
-            <button disabled={resetLoading || !resetEmail} onClick={async () => {
+            <p className="text-sm text-gray-500 mb-4">Enter your email and we'll send a password reset link.</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
               setResetLoading(true);
               try {
-                const { data } = await api.post('/auth/reset-password', { email: resetEmail });
+                await api.post('/auth/reset-password', { email: resetEmail });
                 toast.success('If the email exists, a reset link has been sent to your inbox.', { duration: 5000 });
                 setShowForgot(false);
               } catch { toast.error('Failed to reset password'); }
               setResetLoading(false);
-            }} className="w-full py-3 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-50">
-              {resetLoading ? 'Sending...' : 'Reset Password'}
-            </button>
+            }}>
+              <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} placeholder="your@email.com"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-700 text-sm mb-3" required />
+              <button type="submit" disabled={resetLoading || !resetEmail} className="w-full py-3 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-50">
+                {resetLoading ? 'Sending...' : 'Reset Password'}
+              </button>
+            </form>
           </motion.div>
         </div>
       )}

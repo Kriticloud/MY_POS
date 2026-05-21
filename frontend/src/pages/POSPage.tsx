@@ -326,9 +326,10 @@ export function POSPage() {
 
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
           {products.map((product: any) => (
-            <motion.button key={product.id} whileTap={{ scale: 0.97 }}
+            <motion.div key={product.id} whileTap={{ scale: 0.97 }} role="button" tabIndex={0}
               onClick={() => cart.addItem({ productId: product.id, name: product.name, price: product.price })}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 text-left shadow-card hover:shadow-md transition-all border border-transparent hover:border-blue-200 relative group">
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cart.addItem({ productId: product.id, name: product.name, price: product.price }); } }}
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 text-left shadow-card hover:shadow-md transition-all border border-transparent hover:border-blue-200 relative group cursor-pointer">
               {product.stockQuantity !== undefined && product.stockQuantity <= (product.minStockLevel || 5) && (
                 <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" title="Low stock" />
               )}
@@ -356,7 +357,7 @@ export function POSPage() {
                   <p className="text-xs text-gray-400">{product.stockQuantity} left</p>
                 ) : null}
               </div>
-            </motion.button>
+            </motion.div>
           ))}
           {products.length === 0 && <div className="col-span-full text-center py-12 text-gray-400">No {labels.products.toLowerCase()} found</div>}
         </div>
