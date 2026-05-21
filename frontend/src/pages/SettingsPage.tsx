@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2, MessageSquare, Send, Phone, CheckCircle, XCircle, Mail, Tablet, Wifi, WifiOff, Monitor, RefreshCw } from 'lucide-react';
+import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2, MessageSquare, Send, Phone, CheckCircle, XCircle, Mail, Tablet, Wifi, WifiOff, Monitor, RefreshCw, Usb, Zap } from 'lucide-react';
 import { useSettings, useUpdateSetting, useChangePassword, useTaxes, useCreateTax, useUpdateTax, useDeleteTax, useBackups, useCreateBackup, useRestoreBackup, useDeleteBackup } from '../hooks/useApi';
 import { useSettingsStore, type BusinessType } from '../store/settingsStore';
 import { useThemeStore } from '../store/themeStore';
@@ -163,7 +163,71 @@ export function SettingsPage() {
                     ))}
                   </div>
                 </div>
-                <button onClick={() => saveSection(['receiptPaperSize', 'printerType', 'receiptHeader', 'receiptFooter', 'receiptLogo', 'receiptTaxLabel', 'currencyPosition', 'showLogo', 'showBarcode', 'showLoyaltyPoints'], 'printing')}
+
+                {/* Thermal Printer / ESC/POS Configuration */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2"><Zap className="w-4 h-4 text-amber-500" /> Thermal Printer (ESC/POS)</h3>
+                  <p className="text-xs text-gray-500">Connect a thermal receipt printer via USB (WebUSB) or network for direct ESC/POS printing.</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className="block text-xs text-gray-500 mb-1">Connection Type</label>
+                      <select value={getValue('thermalConnectionType', 'usb')} onChange={e => setValue('thermalConnectionType', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600">
+                        <option value="usb">USB (WebUSB)</option>
+                        <option value="network">Network (IP)</option>
+                      </select></div>
+                    <div><label className="block text-xs text-gray-500 mb-1">Paper Width</label>
+                      <select value={getValue('thermalPaperWidth', '80')} onChange={e => setValue('thermalPaperWidth', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600">
+                        <option value="58">58mm (2¼")</option>
+                        <option value="80">80mm (3⅛")</option>
+                      </select></div>
+                  </div>
+                  {getValue('thermalConnectionType', 'usb') === 'network' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className="block text-xs text-gray-500 mb-1">Printer IP Address</label>
+                        <input value={getValue('thermalNetworkHost')} onChange={e => setValue('thermalNetworkHost', e.target.value)} placeholder="192.168.1.100"
+                          className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600" /></div>
+                      <div><label className="block text-xs text-gray-500 mb-1">Port</label>
+                        <input value={getValue('thermalNetworkPort', '9100')} onChange={e => setValue('thermalNetworkPort', e.target.value)} placeholder="9100"
+                          className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 dark:border-gray-600" /></div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 text-xs">
+                      <input type="checkbox" checked={getValue('thermalAutoCut', 'true') === 'true'} onChange={e => setValue('thermalAutoCut', e.target.checked ? 'true' : 'false')} className="rounded border-gray-300" /> Auto-cut paper
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs">
+                      <input type="checkbox" checked={getValue('thermalOpenDrawer', 'false') === 'true'} onChange={e => setValue('thermalOpenDrawer', e.target.checked ? 'true' : 'false')} className="rounded border-gray-300" /> Open cash drawer on print
+                    </label>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={async () => {
+                      try {
+                        const { connectUSBPrinter, buildTestPage, printViaUSB, printViaNetwork } = await import('../services/thermalPrinter');
+                        const config = { type: getValue('thermalConnectionType', 'usb') as 'usb' | 'network', paperWidth: parseInt(getValue('thermalPaperWidth', '80')) as 58 | 80, autoCut: getValue('thermalAutoCut', 'true') === 'true', networkHost: getValue('thermalNetworkHost'), networkPort: parseInt(getValue('thermalNetworkPort', '9100')) };
+                        const testData = buildTestPage(config);
+                        if (config.type === 'usb') { await connectUSBPrinter(); await printViaUSB(testData); }
+                        else { await printViaNetwork(testData, config.networkHost!, config.networkPort); }
+                        toast.success('Test page sent to printer!');
+                      } catch (err: any) { toast.error(err.message || 'Printer test failed'); }
+                    }} className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700">
+                      <Printer className="w-3 h-3" /> Test Print
+                    </button>
+                    {getValue('thermalConnectionType', 'usb') === 'usb' && (
+                      <button onClick={async () => {
+                        try {
+                          const { connectUSBPrinter } = await import('../services/thermalPrinter');
+                          await connectUSBPrinter();
+                          toast.success('USB printer connected!');
+                        } catch (err: any) { toast.error(err.message || 'USB connection failed'); }
+                      }} className="flex items-center gap-2 px-3 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg text-xs font-medium hover:bg-gray-300">
+                        <Usb className="w-3 h-3" /> Connect USB Printer
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <button onClick={() => saveSection(['receiptPaperSize', 'printerType', 'receiptHeader', 'receiptFooter', 'receiptLogo', 'receiptTaxLabel', 'currencyPosition', 'showLogo', 'showBarcode', 'showLoyaltyPoints', 'thermalConnectionType', 'thermalPaperWidth', 'thermalNetworkHost', 'thermalNetworkPort', 'thermalAutoCut', 'thermalOpenDrawer'], 'printing')}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700"><Save className="w-4 h-4" /> Save Changes</button>
               </div>
             )}
