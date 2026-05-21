@@ -37,7 +37,7 @@ test.describe('Dashboard', () => {
     test('should display stat cards', async ({ page }) => {
       await expect(page.getByText('Revenue', { exact: true })).toBeVisible({ timeout: 15000 });
       await expect(page.getByText(/Today.*Orders/)).toBeVisible();
-      await expect(page.getByText(/Total.*Order/)).toBeVisible();
+      await expect(page.getByText(/Total.*Order/).first()).toBeVisible();
     });
 
     test('should display revenue with dollar sign', async ({ page }) => {
