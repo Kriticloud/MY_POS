@@ -46,6 +46,25 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RoleGuard({ roles, children }: { roles: string[]; children: React.ReactNode }) {
+  const userRole = useAuthStore((s) => s.user?.role);
+  if (!userRole || !roles.includes(userRole)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v.01M12 9v2m0 8a9 9 0 100-18 9 9 0 000 18z" /></svg>
+        </div>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Access Denied</h2>
+        <p className="text-sm text-gray-500">You don't have permission to access this page. Contact your administrator.</p>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
+const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'];
+const REPORT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'];
+
 export default function App() {
   const fetchSettings = useSettingsStore((s) => s.fetchSettings);
 
@@ -75,17 +94,17 @@ export default function App() {
             <Route path="kitchen" element={<ErrorBoundary><KitchenPage /></ErrorBoundary>} />
             <Route path="products" element={<ErrorBoundary><ProductsPage /></ErrorBoundary>} />
             <Route path="customers" element={<ErrorBoundary><CustomersPage /></ErrorBoundary>} />
-            <Route path="reports" element={<ErrorBoundary><ReportsPage /></ErrorBoundary>} />
-            <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
-            <Route path="employees" element={<ErrorBoundary><EmployeesPage /></ErrorBoundary>} />
+            <Route path="reports" element={<ErrorBoundary><RoleGuard roles={REPORT_ROLES}><ReportsPage /></RoleGuard></ErrorBoundary>} />
+            <Route path="settings" element={<ErrorBoundary><RoleGuard roles={ADMIN_ROLES}><SettingsPage /></RoleGuard></ErrorBoundary>} />
+            <Route path="employees" element={<ErrorBoundary><RoleGuard roles={ADMIN_ROLES}><EmployeesPage /></RoleGuard></ErrorBoundary>} />
             <Route path="inventory" element={<ErrorBoundary><InventoryPage /></ErrorBoundary>} />
             <Route path="appointments" element={<ErrorBoundary><AppointmentsPage /></ErrorBoundary>} />
             <Route path="suppliers" element={<ErrorBoundary><SuppliersPage /></ErrorBoundary>} />
             <Route path="cash-drawer" element={<ErrorBoundary><CashDrawerPage /></ErrorBoundary>} />
             <Route path="memberships" element={<ErrorBoundary><MembershipsPage /></ErrorBoundary>} />
             <Route path="discounts" element={<ErrorBoundary><DiscountsPage /></ErrorBoundary>} />
-            <Route path="branches" element={<ErrorBoundary><BranchesPage /></ErrorBoundary>} />
-            <Route path="audit-log" element={<ErrorBoundary><AuditLogPage /></ErrorBoundary>} />
+            <Route path="branches" element={<ErrorBoundary><RoleGuard roles={['SUPER_ADMIN', 'ADMIN']}><BranchesPage /></RoleGuard></ErrorBoundary>} />
+            <Route path="audit-log" element={<ErrorBoundary><RoleGuard roles={ADMIN_ROLES}><AuditLogPage /></RoleGuard></ErrorBoundary>} />
             <Route path="profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
             <Route path="gift-cards" element={<ErrorBoundary><GiftCardsPage /></ErrorBoundary>} />
             <Route path="*" element={<NotFoundPage />} />

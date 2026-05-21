@@ -460,7 +460,7 @@ export function POSPage() {
             </div>
           )}
           <div className="flex justify-between text-sm text-gray-500"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-          <div className="flex justify-between text-sm text-gray-500"><span>Tax (8.5%)</span><span>{formatCurrency(tax)}</span></div>
+          <div className="flex justify-between text-sm text-gray-500"><span>Tax ({useSettingsStore.getState().taxRate || 8.5}%)</span><span>{formatCurrency(tax)}</span></div>
           {cart.discount > 0 && <div className="flex justify-between text-sm text-green-600"><span>Discount</span><span>-{formatCurrency(cart.discount)}</span></div>}
           <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white pt-2 border-t"><span>Total</span><span>{formatCurrency(total)}</span></div>
           <button onClick={openPayment} disabled={cart.items.length === 0}

@@ -11,6 +11,7 @@ import { ActivityFeed } from '../components/ActivityFeed';
 import { SimpleBarChart, SimpleDonutChart } from '../components/Charts';
 import { useMemo } from 'react';
 import { useI18nStore } from '../store/i18nStore';
+import { useAuthStore } from '../store/authStore';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -18,6 +19,8 @@ export function DashboardPage() {
   const config = getBusinessConfig(businessType);
   const labels = getEntityLabels(businessType);
   const t = useI18nStore((s) => s.t);
+  const userRole = useAuthStore((s) => s.user?.role);
+  const isManager = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'].includes(userRole || '');
   const { data: daily, isLoading: loadingDaily } = useDailySummary();
   const { data: salesData } = useSalesReport();
   const { data: ordersData, isLoading: loadingOrders } = useOrders();

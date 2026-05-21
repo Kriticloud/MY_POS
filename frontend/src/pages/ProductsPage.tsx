@@ -69,7 +69,7 @@ export function ProductsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => {
-            const data = (apiProducts || []).map((p: any) => ({ name: p.name, sku: p.sku || '', price: p.price, costPrice: p.costPrice || '', category: p.category?.name || '', barcode: p.barcode || '', taxRate: p.taxRate }));
+            const data = (products || []).map((p: any) => ({ name: p.name, sku: p.sku || '', price: p.price, costPrice: p.costPrice || '', category: p.category?.name || '', barcode: p.barcode || '', taxRate: p.taxRate }));
             exportToCSV(data, 'products');
           }} className="flex items-center gap-1 px-3 py-2 text-sm border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600">
             <Download className="w-4 h-4" /> Export

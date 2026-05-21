@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Store, Printer, Globe, Palette, Bell, Shield, Save, Moon, Sun, Key, Receipt, Database, Download, Upload, Trash2, MessageSquare, Send, Phone, CheckCircle, XCircle, Mail, Tablet, Wifi, WifiOff, Monitor, RefreshCw, Usb, Zap } from 'lucide-react';
 import { useSettings, useUpdateSetting, useChangePassword, useTaxes, useCreateTax, useUpdateTax, useDeleteTax, useBackups, useCreateBackup, useRestoreBackup, useDeleteBackup } from '../hooks/useApi';
+import { api } from '../services/api';
 import { useSettingsStore, type BusinessType } from '../store/settingsStore';
 import { useThemeStore } from '../store/themeStore';
 import { useI18nStore, localeNames, availableLocales } from '../store/i18nStore';
@@ -427,23 +428,21 @@ function DevicesSection() {
       const res = await fetch('/api/devices/info');
       const data = await res.json();
       if (data.success) setDeviceInfo(data.data);
-    } catch { /* ignore */ }
+    } catch { /* public endpoint, ignore */ }
   };
 
   const fetchDevices = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || '';
-      const res = await fetch('/api/devices', { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
+      const { data } = await api.get('/devices');
       if (data.success) setDevices(data.data);
-    } catch { /* ignore */ }
+    } catch { /* ignore polling errors */ }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchDeviceInfo();
     fetchDevices();
-    const interval = setInterval(fetchDevices, 5000);
+    const interval = setInterval(fetchDevices, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -451,13 +450,7 @@ function DevicesSection() {
     if (!deviceName.trim()) { toast.error('Enter a device name'); return; }
     setConnecting(true);
     try {
-      const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || '';
-      const res = await fetch('/api/devices/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ deviceName: deviceName.trim(), deviceType: 'tablet' }),
-      });
-      const data = await res.json();
+      const { data } = await api.post('/devices/register', { deviceName: deviceName.trim(), deviceType: 'tablet' });
       if (data.success) {
         toast.success(`Device "${deviceName}" registered!`);
         setDeviceName('');
@@ -471,8 +464,7 @@ function DevicesSection() {
 
   const removeDevice = async (id: string) => {
     try {
-      const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken || '';
-      await fetch(`/api/devices/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(`/devices/${id}`);
       fetchDevices();
       toast.success('Device removed');
     } catch { toast.error('Failed to remove device'); }

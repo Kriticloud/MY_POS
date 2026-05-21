@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { useOrders, useUpdateOrderStatus, useVoidOrder, useSplitBill } from '../hooks/useApi';
+import { api } from '../services/api';
 import { Search, Filter, Eye, X, ChevronDown, Ban, RotateCcw, Scissors } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -72,7 +73,7 @@ export function OrdersPage() {
       return;
     }
     try {
-      const { data } = await (await import('../services/api')).default.put(`/orders/${orderId}/refund`, { reason, amount });
+      const { data } = await api.put(`/orders/${orderId}/refund`, { reason, amount });
       if (data.success) toast.success(data.message || 'Refund processed');
       setSelectedOrder(null);
     } catch { toast.error('Failed to process refund'); }

@@ -142,11 +142,7 @@ export function LoginPage() {
               setResetLoading(true);
               try {
                 const { data } = await api.post('/auth/reset-password', { email: resetEmail });
-                if (data.tempPassword) {
-                  toast.success(`Temporary password: ${data.tempPassword}`, { duration: 10000 });
-                } else {
-                  toast.success('If the email exists, a reset link has been sent');
-                }
+                toast.success('If the email exists, a reset link has been sent to your inbox.', { duration: 5000 });
                 setShowForgot(false);
               } catch { toast.error('Failed to reset password'); }
               setResetLoading(false);

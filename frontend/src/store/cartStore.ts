@@ -85,6 +85,11 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ items: [], customerId: null, tableId: null, discount: 0, notes: '', orderType: 'DINE_IN' }),
 
   getSubtotal: () => get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-  getTax: () => get().getSubtotal() * 0.085,
+  getTax: () => {
+    try {
+      const { taxRate } = JSON.parse(localStorage.getItem('settings-storage') || '{}')?.state || {};
+      return get().getSubtotal() * ((taxRate || 8.5) / 100);
+    } catch { return get().getSubtotal() * 0.085; }
+  },
   getTotal: () => get().getSubtotal() + get().getTax() - get().discount,
 }));
