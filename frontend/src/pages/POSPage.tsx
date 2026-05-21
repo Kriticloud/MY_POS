@@ -52,7 +52,8 @@ export function POSPage() {
   const { data: productData } = useProducts({ businessType });
   const apiProducts = productData?.products;
   const { data: apiCategories } = useCategories({ businessType });
-  const { data: customers } = useCustomers({ search: customerSearch || undefined });
+  const { data: customerData } = useCustomers({ search: customerSearch || undefined });
+  const customers = customerData?.customers;
   const { data: allSettings } = useSettings();
   const orderTypes = getBusinessConfig(businessType).orderTypes;
   const createOrder = useCreateOrder();

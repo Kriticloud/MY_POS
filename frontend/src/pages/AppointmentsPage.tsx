@@ -20,7 +20,8 @@ export function AppointmentsPage() {
   const [showModal, setShowModal] = useState(false);
   const { data: appointments, isLoading } = useAppointments({ date: selectedDate });
   const { data: employees } = useEmployees();
-  const { data: customers } = useCustomers();
+  const { data: customerData } = useCustomers();
+  const customers = customerData?.customers;
   const createAppointment = useCreateAppointment();
   const updateStatus = useUpdateAppointmentStatus();
 

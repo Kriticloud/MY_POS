@@ -9,7 +9,8 @@ const tierColors = ['from-gray-400 to-gray-500', 'from-amber-500 to-yellow-400',
 
 export function MembershipsPage() {
   const { data: memberships, isLoading } = useMemberships();
-  const { data: customers } = useCustomers();
+  const { data: customerData } = useCustomers();
+  const customers = customerData?.customers;
   const createMembership = useCreateMembership();
   const updateMembership = useUpdateMembership();
   const deleteMembership = useDeleteMembership();

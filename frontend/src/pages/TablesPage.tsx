@@ -56,7 +56,21 @@ export function TablesPage() {
         </div>
       </div>
 
-      {isLoading ? <Skeleton className="h-60 w-full" /> : Object.entries(floors).map(([floor, floorTables]) => (
+      {isLoading ? <Skeleton className="h-60 w-full" /> : (<>
+        <div className="flex flex-wrap gap-3">
+          {Object.entries(statusConfig).map(([status, cfg]) => {
+            const count = (tables || []).filter((t: any) => t.status === status).length;
+            return count > 0 ? (
+              <div key={status} className={`${cfg.bg} border rounded-lg px-3 py-1.5 text-sm font-medium ${cfg.text}`}>
+                {count} {status.charAt(0) + status.slice(1).toLowerCase()}
+              </div>
+            ) : null;
+          })}
+          <div className="ml-auto text-sm text-gray-500 flex items-center gap-1">
+            <Users className="w-4 h-4" /> {(tables || []).length} tables total
+          </div>
+        </div>
+        {Object.entries(floors).map(([floor, floorTables]) => (
         <div key={floor}>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{floor}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -80,6 +94,7 @@ export function TablesPage() {
           </div>
         </div>
       ))}
+      </>)}
 
       {/* Table Detail Modal */}
       {selected && (

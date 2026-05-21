@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, Star, Award, History, X, Gift, Download } from 'lucide-react';
+import { Search, Plus, Star, Award, History, X, Gift, Download, Users, ChevronLeft, ChevronRight, Phone } from 'lucide-react';
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useRedeemLoyalty, useLoyaltyHistory } from '../hooks/useApi';
 import { formatCurrency } from '../utils/helpers';
 import { useSettingsStore, getPageTitle, getEntityLabels } from '../store/settingsStore';
@@ -15,7 +15,11 @@ function getTier(points: number) { return tierThresholds.find(t => points >= t.m
 
 export function CustomersPage() {
   const [search, setSearch] = useState('');
-  const { data: customers, isLoading } = useCustomers({ search: search || undefined });
+  const [page, setPage] = useState(1);
+  const LIMIT = 12;
+  const { data: customerData, isLoading } = useCustomers({ search: search || undefined, page, limit: LIMIT });
+  const customers = customerData?.customers;
+  const pagination = customerData?.pagination;
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
@@ -75,8 +79,14 @@ export function CustomersPage() {
       </div>
 
       <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input type="text" placeholder={`Search ${labels.customers.toLowerCase()}...`} value={search} onChange={e => setSearch(e.target.value)}
+        <input type="text" placeholder={`Search ${labels.customers.toLowerCase()}...`} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
           className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm" /></div>
+
+      {pagination && (
+        <div className="flex items-center text-sm text-gray-500">
+          <Users className="w-4 h-4 mr-1" /> {pagination.total} {pagination.total === 1 ? labels.customer : labels.customers}
+        </div>
+      )}
 
       {isLoading ? <Skeleton className="h-64 w-full" /> : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -90,7 +100,8 @@ export function CustomersPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{c.firstName} {c.lastName || ''}</p>
-                    <p className="text-xs text-gray-500">{c.email || c.phone || 'No contact'}</p>
+                    <p className="text-xs text-gray-500 truncate">{c.email || 'No email'}</p>
+                    {c.phone && <p className="text-xs text-gray-400 flex items-center gap-1"><Phone className="w-3 h-3" />{c.phone}</p>}
                     <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${tierColors[tier] || tierColors.BRONZE}`}>
                       <Award className="w-3 h-3 inline mr-1" />{tier}
                     </span>
@@ -109,6 +120,35 @@ export function CustomersPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed" title="Previous page">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+            .filter(p => p === 1 || p === pagination.pages || Math.abs(p - page) <= 1)
+            .reduce<(number | string)[]>((acc, p, i, arr) => {
+              if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('...');
+              acc.push(p);
+              return acc;
+            }, [])
+            .map((p, i) => typeof p === 'string' ? (
+              <span key={`dot-${i}`} className="px-1 text-gray-400">...</span>
+            ) : (
+              <button key={p} onClick={() => setPage(p)}
+                className={`w-8 h-8 rounded-lg text-sm font-medium ${page === p ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                {p}
+              </button>
+            ))}
+          <button onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page >= pagination.pages}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed" title="Next page">
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       )}
 

@@ -134,12 +134,12 @@ export function useKitchenQueue() {
 }
 
 // Customers
-export function useCustomers(params?: { search?: string }) {
+export function useCustomers(params?: { search?: string; page?: number; limit?: number }) {
   return useQuery({
     queryKey: ['customers', params],
     queryFn: async () => {
       const { data } = await api.get<ApiResponse<Customer[]>>('/customers', { params });
-      return data.data;
+      return { customers: data.data, pagination: (data as any).pagination as { page: number; limit: number; total: number; pages: number } | undefined };
     },
   });
 }
