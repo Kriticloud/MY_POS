@@ -329,7 +329,17 @@ export function POSPage() {
             <motion.div key={product.id} whileTap={{ scale: 0.97 }} role="button" tabIndex={0}
               onClick={() => cart.addItem({ productId: product.id, name: product.name, price: product.price })}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cart.addItem({ productId: product.id, name: product.name, price: product.price }); } }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 text-left shadow-card hover:shadow-md transition-all border border-transparent hover:border-blue-200 relative group cursor-pointer">
+              className={`bg-white dark:bg-gray-800 rounded-xl p-4 text-left shadow-card hover:shadow-md transition-all border-2 relative group cursor-pointer ${
+                cart.items.find(i => i.productId === product.id) ? 'border-blue-400 ring-1 ring-blue-200' : 'border-transparent hover:border-blue-200'
+              }`}>
+              {(() => {
+                const cartItem = cart.items.find(i => i.productId === product.id);
+                return cartItem ? (
+                  <span className="absolute -top-2 -left-2 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md z-10">
+                    {cartItem.quantity}
+                  </span>
+                ) : null;
+              })()}
               {product.stockQuantity !== undefined && product.stockQuantity <= (product.minStockLevel || 5) && (
                 <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" title="Low stock" />
               )}
@@ -383,8 +393,9 @@ export function POSPage() {
             ))}
           </div>
           {/* Customer select */}
-          <button onClick={() => setShowCustomerSelect(true)}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100">
+          <div onClick={() => setShowCustomerSelect(true)} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowCustomerSelect(true); }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 cursor-pointer">
             <User className="w-4 h-4" />
             {selectedCustomer ? (
               <span className="flex-1 text-left">
@@ -393,7 +404,7 @@ export function POSPage() {
               </span>
             ) : <span className="flex-1 text-left">Select Customer</span>}
             {cart.customerId && <button onClick={(e) => { e.stopPropagation(); cart.setCustomer(null); }} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
-          </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
